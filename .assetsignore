@@ -1,0 +1,14 @@
+# wrangler deploy 上传静态资源时排除以下内容
+.git
+node_modules
+.wrangler
+.superpowers
+scripts
+package.json
+bun.lock
+bun.lockb
+package-lock.json
+wrangler.toml
+README.md
+.gitignore
+.assetsignore

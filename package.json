@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "汇报项目集合：纯前端 HTML 报告，托管于 Cloudflare Pages",
+  "description": "汇报项目集合：纯前端 HTML 报告，托管于 Cloudflare",
   "scripts": {
     "new": "node scripts/new-report.mjs",
-    "dev": "wrangler pages dev .",
-    "deploy": "wrangler pages deploy . --project-name=report-cli"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

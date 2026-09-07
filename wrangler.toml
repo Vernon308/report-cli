@@ -1,3 +1,6 @@
 name = "report-cli"
-pages_build_output_dir = "."
-compatibility_date = "2026-09-01"
+compatibility_date = "2026-09-07"
+
+# 纯静态站点：整个仓库目录作为静态资源发布（Workers Static Assets）
+[assets]
+directory = "."
