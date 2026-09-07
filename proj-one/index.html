@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent 驱动项目全生命周期管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{
+  --bg0:#05070f; --bg1:#0a0e1c; --bg2:#0d1326;
+  --panel:rgba(148,184,255,0.05); --panel-hi:rgba(148,184,255,0.09);
+  --line:rgba(120,180,255,0.14); --line-hi:rgba(120,180,255,0.35);
+  --cyan:#5fd8ff; --violet:#a78bfa; --mint:#3dffb0; --gold:#e8c368;
+  --text:#e9f0ff; --dim:#8ea1c4; --faint:#5b6b8c;
+  --r:16px; --r-sm:10px;
+  --font-num:'Orbitron',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;scroll-snap-type:y proximity;}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg0);color:var(--text);font-size:15.5px;line-height:1.75;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--bg0);}
+::-webkit-scrollbar-thumb{background:rgba(95,216,255,0.3);border-radius:3px;}
+a{color:inherit;text-decoration:none;}
+::selection{background:rgba(95,216,255,0.3);}
+
+/* ===== 深空背景 ===== */
+.bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.bg-stars{position:absolute;inset:0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%,rgba(233,240,255,0.7),transparent 60%),
+    radial-gradient(1px 1px at 38% 8%,rgba(233,240,255,0.5),transparent 60%),
+    radial-gradient(1.5px 1.5px at 64% 30%,rgba(95,216,255,0.6),transparent 60%),
+    radial-gradient(1px 1px at 82% 14%,rgba(233,240,255,0.5),transparent 60%),
+    radial-gradient(1px 1px at 24% 58%,rgba(167,139,250,0.5),transparent 60%),
+    radial-gradient(1.5px 1.5px at 74% 66%,rgba(233,240,255,0.45),transparent 60%),
+    radial-gradient(1px 1px at 48% 82%,rgba(95,216,255,0.5),transparent 60%),
+    radial-gradient(1px 1px at 90% 46%,rgba(233,240,255,0.4),transparent 60%);
+  animation:starDrift 60s linear infinite alternate;}
+@keyframes starDrift{from{transform:translateY(0);}to{transform:translateY(-30px);}}
+.bg-nebula{position:absolute;border-radius:50%;filter:blur(140px);}
+.bg-nebula.a{width:900px;height:900px;background:radial-gradient(circle,rgba(43,72,160,0.35),transparent 65%);top:-25%;right:-15%;}
+.bg-nebula.b{width:700px;height:700px;background:radial-gradient(circle,rgba(88,52,180,0.22),transparent 65%);bottom:-10%;left:-12%;}
+.bg-nebula.c{width:600px;height:600px;background:radial-gradient(circle,rgba(20,120,140,0.18),transparent 65%);top:40%;left:35%;}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(95,216,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(95,216,255,0.035) 1px,transparent 1px);background-size:80px 80px;mask-image:radial-gradient(ellipse at 50% 30%,black 10%,transparent 65%);}
+.grain{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0.5;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.06'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* ===== 滚动进度 ===== */
+.progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:200;background:linear-gradient(90deg,var(--cyan),var(--violet),var(--mint));box-shadow:0 0 12px rgba(95,216,255,0.6);}
+
+/* ===== Loader ===== */
+.loader{position:fixed;inset:0;z-index:9999;background:var(--bg0);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;transition:opacity 0.7s ease,visibility 0.7s ease;}
+.loader.done{opacity:0;visibility:hidden;}
+.loader-stage{perspective:600px;}
+.loader-ring{width:64px;height:64px;border:2px solid rgba(95,216,255,0.15);border-top-color:var(--cyan);border-radius:50%;animation:spinZ 1s linear infinite;transform-style:preserve-3d;box-shadow:0 0 30px rgba(95,216,255,0.2);}
+@keyframes spinZ{to{transform:rotateX(20deg) rotate(360deg);}}
+.loader-text{font-family:var(--font-num);font-size:11px;letter-spacing:5px;color:var(--cyan);text-transform:uppercase;}
+
+/* ===== Nav ===== */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:66px;background:rgba(5,7,15,0.6);backdrop-filter:blur(18px) saturate(1.3);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 44px;transition:background .3s;}
+.nav.s{background:rgba(5,7,15,0.9);box-shadow:0 8px 40px rgba(0,0,0,0.4);}
+.nav-brand{display:flex;align-items:center;gap:12px;}
+.logo-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--violet));display:flex;align-items:center;justify-content:center;color:#05070f;font-size:15px;box-shadow:0 0 20px rgba(95,216,255,0.4);}
+.brand-txt{display:flex;flex-direction:column;line-height:1.25;}
+.brand-txt b{font-size:15px;font-weight:700;letter-spacing:0.5px;}
+.brand-txt span{font-size:10.5px;color:var(--cyan);letter-spacing:0.4px;white-space:nowrap;}
+.nav-links{display:flex;gap:26px;font-size:13px;color:var(--dim);}
+.nav-links a{transition:color .25s;position:relative;}
+.nav-links a::after{content:'';position:absolute;left:0;bottom:-5px;width:0;height:1.5px;background:var(--cyan);transition:width .3s;}
+.nav-links a:hover{color:var(--text);}
+.nav-links a:hover::after{width:100%;}
+
+main{position:relative;z-index:1;}
+.section{position:relative;padding:90px 44px;max-width:1240px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;justify-content:center;scroll-snap-align:start;}
+
+/* ===== Hero ===== */
+.hero{display:flex;align-items:center;padding-top:110px;}
+.hero-inner{display:grid;grid-template-columns:1.15fr 0.85fr;gap:40px;align-items:center;width:100%;}
+.sec-label{font-family:var(--font-num);font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--cyan);margin-bottom:18px;display:flex;align-items:center;gap:12px;}
+.sec-label::before{content:'';width:34px;height:1.5px;background:linear-gradient(90deg,var(--cyan),transparent);box-shadow:0 0 8px rgba(95,216,255,0.6);}
+.hero-title{font-size:52px;font-weight:900;line-height:1.18;letter-spacing:-0.5px;}
+.hero-title .grad{background:linear-gradient(100deg,#fff 10%,var(--cyan) 55%,var(--violet) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero-desc{color:var(--dim);font-size:17px;margin-top:22px;line-height:1.9;max-width:520px;}
+.hero-desc b{color:var(--cyan);font-weight:600;}
+.hero-hint{margin-top:56px;display:flex;align-items:center;gap:12px;font-family:var(--font-num);font-size:10px;letter-spacing:3px;color:var(--faint);text-transform:uppercase;}
+.hero-hint .line{width:1px;height:44px;background:linear-gradient(180deg,var(--cyan),transparent);animation:hintDrop 1.8s ease-in-out infinite;}
+@keyframes hintDrop{0%{transform:scaleY(0);transform-origin:top;}55%{transform:scaleY(1);transform-origin:top;}56%{transform-origin:bottom;}100%{transform:scaleY(0);transform-origin:bottom;}}
+
+/* Hero 悬浮面板群 */
+.hero-stage{position:relative;height:440px;perspective:1100px;}
+.float-panel{position:absolute;background:linear-gradient(150deg,rgba(148,184,255,0.10),rgba(148,184,255,0.03));border:1px solid var(--line-hi);border-radius:14px;padding:20px 22px;backdrop-filter:blur(10px);box-shadow:0 30px 70px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08);transform-style:preserve-3d;will-change:transform;animation:panelFloat 7s ease-in-out infinite alternate;}
+@keyframes panelFloat{from{translate:0 -6px;}to{translate:0 8px;}}
+.fp-cap{font-family:var(--font-num);font-size:9.5px;letter-spacing:2.5px;color:var(--faint);text-transform:uppercase;margin-bottom:8px;}
+.fp-val{font-family:var(--font-num);font-size:30px;font-weight:800;line-height:1.1;}
+.fp-sub{font-size:12.5px;color:var(--dim);margin-top:8px;line-height:1.6;}
+.fp-bar{height:3px;border-radius:2px;margin-top:12px;background:rgba(148,184,255,0.12);overflow:hidden;}
+.fp-bar i{display:block;height:100%;border-radius:2px;}
+.fp-1{top:8%;right:24%;width:230px;transform:rotateY(-14deg) rotateX(5deg);border-color:rgba(95,216,255,0.4);}
+.fp-1 .fp-val{color:var(--cyan);text-shadow:0 0 24px rgba(95,216,255,0.5);}
+.fp-1 .fp-bar i{width:80%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
+.fp-2{top:38%;right:2%;width:225px;transform:rotateY(-22deg) rotateX(9deg);border-color:rgba(167,139,250,0.4);animation-delay:-2.5s;}
+.fp-2 .fp-val{color:var(--violet);text-shadow:0 0 24px rgba(167,139,250,0.5);}
+.fp-2 .fp-bar i{width:100%;background:var(--violet);box-shadow:0 0 10px var(--violet);}
+.fp-3{top:68%;right:30%;width:215px;transform:rotateY(-10deg) rotateX(13deg);border-color:rgba(61,255,176,0.35);animation-delay:-5s;}
+.fp-3 .fp-val{color:var(--mint);text-shadow:0 0 24px rgba(61,255,176,0.5);}
+.fp-3 .fp-bar i{width:62%;background:var(--mint);box-shadow:0 0 10px var(--mint);}
+.hero-floor{position:absolute;left:50%;bottom:-60px;width:900px;height:340px;transform:translateX(-50%) rotateX(64deg);background-image:linear-gradient(rgba(95,216,255,0.10) 1px,transparent 1px),linear-gradient(90deg,rgba(95,216,255,0.10) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse at center,black 0%,transparent 70%);pointer-events:none;}
+
+/* ===== 通用标题 ===== */
+.sec-title{font-size:38px;font-weight:900;line-height:1.25;margin-bottom:14px;letter-spacing:-0.5px;}
+.sec-title .grad{background:linear-gradient(100deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.sec-desc{color:var(--dim);font-size:16px;margin-bottom:44px;line-height:1.85;max-width:720px;}
+.sec-desc b{color:var(--text);font-weight:600;}
+
+/* ===== 贯穿案例 + 飞轮 ===== */
+/* ===== 飞轮闭环(环形) ===== */
+.loop{position:relative;width:min(640px,88vw);aspect-ratio:1;margin:4px auto 0;}
+.loop-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.loop-base{fill:none;stroke:rgba(148,184,255,0.14);stroke-width:1.2;stroke-dasharray:3 8;animation:loopSpin 46s linear infinite;transform-origin:center;}
+.loop-arc{fill:none;stroke-width:2.2;stroke-linecap:round;}
+.loop-arc.a1{stroke:var(--cyan);filter:drop-shadow(0 0 6px rgba(95,216,255,0.7));}
+.loop-arc.a2{stroke:var(--violet);filter:drop-shadow(0 0 6px rgba(167,139,250,0.7));}
+.loop-arc.a3{stroke:var(--mint);filter:drop-shadow(0 0 6px rgba(61,255,176,0.7));}
+.loop-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:172px;height:172px;border-radius:50%;background:radial-gradient(circle,rgba(95,216,255,0.16),rgba(167,139,250,0.05) 72%);border:1px solid var(--line-hi);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;animation:corePulse 4.5s ease-in-out infinite;box-shadow:0 0 60px rgba(95,216,255,0.10),inset 0 0 30px rgba(95,216,255,0.06);}
+@keyframes corePulse{0%,100%{box-shadow:0 0 40px rgba(95,216,255,0.08),inset 0 0 30px rgba(95,216,255,0.05);}50%{box-shadow:0 0 80px rgba(95,216,255,0.18),inset 0 0 40px rgba(95,216,255,0.10);}}
+.loop-core i{color:var(--mint);font-size:22px;animation:loopSpin 8s linear infinite;filter:drop-shadow(0 0 8px rgba(61,255,176,0.6));}
+.loop-core b{font-size:18px;font-weight:900;letter-spacing:1px;}
+.loop-core span{font-size:11px;color:var(--dim);letter-spacing:2px;}
+.loop-node{position:absolute;width:196px;background:linear-gradient(160deg,var(--panel-hi),var(--panel));border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-align:center;backdrop-filter:blur(8px);box-shadow:0 20px 50px rgba(0,0,0,0.45);transition:transform .4s cubic-bezier(0.16,1,0.3,1),border-color .4s,box-shadow .4s;}
+.loop-node:hover{border-color:var(--line-hi);box-shadow:0 26px 60px rgba(0,0,0,0.55),0 0 26px rgba(95,216,255,0.10);}
+.ln-1{left:50%;top:12.5%;transform:translate(-50%,-50%);}
+.ln-1:hover{transform:translate(-50%,-50%) translateY(-5px) scale(1.04);}
+.ln-2{left:82.5%;top:68.75%;transform:translate(-50%,-50%);}
+.ln-2:hover{transform:translate(-50%,-50%) translateY(-5px) scale(1.04);}
+.ln-3{left:17.5%;top:68.75%;transform:translate(-50%,-50%);}
+.ln-3:hover{transform:translate(-50%,-50%) translateY(-5px) scale(1.04);}
+.fw-num{font-family:var(--font-num);font-size:22px;font-weight:800;margin-bottom:8px;}
+.ln-1 .fw-num{color:var(--cyan);}
+.ln-2 .fw-num{color:var(--violet);}
+.ln-3 .fw-num{color:var(--mint);}
+.fw-name{font-weight:800;font-size:15.5px;margin-bottom:4px;}
+.fw-sub{font-size:12px;color:var(--dim);line-height:1.55;}
+.loop-back{display:none;margin-top:14px;border:1px dashed rgba(61,255,176,0.4);border-radius:var(--r-sm);padding:12px 16px;font-size:13px;color:var(--mint);text-align:center;}
+@keyframes loopSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* ===== 圆点导航 ===== */
+.dots{position:fixed;right:24px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:18px;}
+.dot{display:flex;align-items:center;gap:10px;flex-direction:row-reverse;cursor:pointer;}
+.dot i{width:8px;height:8px;border-radius:50%;background:var(--faint);transition:all .3s;flex-shrink:0;}
+.dot span{font-size:11px;color:var(--faint);opacity:0;transform:translateX(6px);transition:all .3s;white-space:nowrap;}
+.dot:hover span,.dot.active span{opacity:1;transform:none;}
+.dot.active i{background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:scale(1.35);}
+.dot.active span{color:var(--cyan);}
+
+/* ===== 截图灯箱 ===== */
+.lightbox{position:fixed;inset:0;z-index:500;background:rgba(3,5,10,0.93);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s;cursor:zoom-out;}
+.lightbox.open{opacity:1;visibility:visible;}
+.lightbox img{max-width:93vw;max-height:88vh;border-radius:12px;border:1px solid var(--line-hi);box-shadow:0 40px 100px rgba(0,0,0,0.7);}
+.lightbox .lb-cap{position:absolute;bottom:26px;left:0;right:0;text-align:center;font-size:13px;color:var(--dim);}
+
+/* ===== 十步流程:纵深舞台 ===== */
+#steps{height:100vh;justify-content:flex-start;padding-top:calc(66px + 4vh);padding-bottom:24px;}
+#steps .sec-title{font-size:32px;margin-bottom:10px;}
+#steps .sec-desc{margin-bottom:26px;font-size:15px;}
+.steps-hint{font-size:13.5px;color:var(--faint);margin:-24px 0 26px;display:flex;align-items:center;gap:10px;}
+.steps-hint i{color:var(--cyan);font-size:12px;}
+.stage-wrap{display:grid;grid-template-columns:240px 1fr;gap:30px;align-items:stretch;flex:1;min-height:0;}
+.stage-col{display:flex;flex-direction:column;min-height:0;}
+
+/* 左侧轨道 */
+.rail{position:sticky;top:96px;--p:0%;}
+.rail-track{position:relative;padding-left:26px;}
+.rail-track::before{content:'';position:absolute;left:8px;top:10px;bottom:10px;width:1.5px;background:rgba(148,184,255,0.12);}
+.rail-track::after{content:'';position:absolute;left:8px;top:10px;height:var(--p);width:1.5px;background:linear-gradient(180deg,var(--cyan),var(--violet));box-shadow:0 0 10px rgba(95,216,255,0.7);transition:height .5s cubic-bezier(0.16,1,0.3,1);}
+.rail-node{position:relative;display:flex;align-items:center;gap:12px;padding:9px 12px;margin-bottom:4px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:all .3s;user-select:none;}
+.rail-node:hover{background:var(--panel);}
+.rail-node::before{content:'';position:absolute;left:-24px;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:var(--bg1);border:1.5px solid var(--faint);transition:all .3s;z-index:1;}
+.rail-node:hover::before{border-color:var(--cyan);}
+.rail-node.active{background:linear-gradient(120deg,rgba(95,216,255,0.12),rgba(167,139,250,0.06));border-color:rgba(95,216,255,0.3);}
+.rail-node.active::before{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 12px var(--cyan);}
+.rn-num{font-family:var(--font-num);font-size:12px;font-weight:700;color:var(--faint);width:26px;flex-shrink:0;transition:color .3s;}
+.rail-node.active .rn-num{color:var(--cyan);}
+.rn-name{font-size:14px;font-weight:600;color:var(--dim);transition:color .3s;}
+.rail-node.active .rn-name{color:var(--text);}
+.rail-node .rn-tag{margin-left:auto;font-size:10px;color:var(--faint);opacity:0;transition:opacity .3s;}
+.rail-node.active .rn-tag{opacity:1;color:var(--cyan);}
+
+/* 右侧舞台 */
+.stage-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0;}
+.stage-count{font-family:var(--font-num);font-size:12px;letter-spacing:2px;color:var(--faint);}
+.stage-count b{color:var(--cyan);font-size:16px;}
+.stage-btns{display:flex;gap:10px;}
+.stage-btn{width:40px;height:40px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .3s;}
+.stage-btn:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 16px rgba(95,216,255,0.15);transform:translateY(-2px);}
+.stage-btn:disabled{opacity:0.3;cursor:not-allowed;}
+
+.stage{flex:1;min-height:0;position:relative;perspective:1400px;}
+.panel{position:absolute;inset:0;display:none;}
+.panel.active{display:block;animation:stageIn .55s cubic-bezier(0.16,1,0.3,1);}
+@keyframes stageIn{from{opacity:0;transform:rotateY(7deg) rotateX(3deg) translateX(36px) translateZ(-60px);}to{opacity:1;transform:none;}}
+
+.deck{height:100%;display:flex;flex-direction:column;gap:14px;background:linear-gradient(160deg,var(--panel-hi),var(--panel));border:1px solid var(--line);border-radius:var(--r);padding:22px 26px;box-shadow:0 24px 60px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.06);position:relative;overflow:hidden;}
+.deck::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(95,216,255,0.5),transparent);z-index:1;}
+
+/* 面板头:大步骤号 + 标题 */
+.deck-head{display:flex;align-items:flex-start;gap:16px;flex-shrink:0;}
+.dh-num{font-family:var(--font-num);font-size:38px;font-weight:800;line-height:1.05;min-width:54px;text-align:center;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 14px rgba(95,216,255,0.25));}
+.dh-txt{flex:1;min-width:0;}
+.dh-txt h4{margin-bottom:6px;}
+.dh-txt .flow-lead{margin-bottom:0;}
+
+/* 四联流水线:输入 → AI → 产出 → 人工 */
+.deck-flow{display:flex;align-items:stretch;flex-shrink:0;background:rgba(95,216,255,0.03);border:1px solid rgba(148,184,255,0.10);border-radius:12px;padding:12px 6px;}
+.deck-flow .io-box{flex:1;min-width:0;background:transparent;border:none;padding:2px 14px;}
+.deck-flow .io-box:hover{transform:none;border:none;}
+.deck-flow .io-box + .io-box{border-left:1px dashed rgba(148,184,255,0.16);}
+.deck-flow .io-box li{font-size:12.5px;}
+
+/* 主体:左叙述右截图 */
+.deck-body{flex:1;min-height:0;display:grid;grid-template-columns:1.02fr 0.98fr;gap:24px;}
+.deck-body:has(>.deck-main:only-child){grid-template-columns:1fr;}
+.deck-body:has(>.deck-side:only-child){grid-template-columns:1fr;}
+.deck-main{min-height:0;overflow-y:auto;padding-right:8px;position:relative;scrollbar-width:thin;scrollbar-color:rgba(95,216,255,0.25) transparent;}
+.deck-main::-webkit-scrollbar{width:4px;}
+.deck-main::-webkit-scrollbar-thumb{background:rgba(95,216,255,0.25);border-radius:2px;}
+.deck-main::after{content:'';position:sticky;bottom:0;display:block;height:44px;margin:0 0 -24px;background:linear-gradient(180deg,transparent,rgba(9,13,25,0.95) 70%);opacity:0;transition:opacity .3s;pointer-events:none;}
+.deck-main.show-fade::after{opacity:1;}
+.deck-main:only-child{max-width:760px;width:100%;margin:0 auto;align-self:center;overflow:visible;padding-right:0;}
+.deck-main:only-child::after{display:none;}
+.deck-side{min-height:0;display:flex;flex-direction:column;}
+.deck h4{font-size:19px;font-weight:800;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.deck p{font-size:14.5px;color:var(--dim);line-height:1.9;}
+.deck p b{color:var(--text);font-weight:700;}
+
+.flow-key{font-family:var(--font-num);font-size:10.5px;letter-spacing:1px;color:var(--cyan);padding:4px 10px;border-radius:6px;background:rgba(95,216,255,0.08);border:1px solid rgba(95,216,255,0.25);}
+.badge{display:inline-flex;padding:4px 11px;border-radius:5px;font-size:11px;font-weight:600;background:rgba(61,255,176,0.10);color:var(--mint);border:1px solid rgba(61,255,176,0.28);}
+.badge.plan{background:rgba(232,195,104,0.10);color:var(--gold);border-color:rgba(232,195,104,0.28);}
+.flow-lead{color:var(--dim);font-size:13.5px;line-height:1.75;}
+.flow-lead b{color:var(--text);}
+.io-box{background:rgba(95,216,255,0.04);border:1px solid rgba(148,184,255,0.10);border-radius:var(--r-sm);padding:15px 16px;transition:border-color .3s,transform .3s;}
+.io-box:hover{border-color:rgba(95,216,255,0.3);transform:translateY(-2px);}
+.io-box .io-lbl{display:flex;align-items:center;gap:7px;font-size:10.5px;font-family:var(--font-num);letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-bottom:10px;}
+.io-box.ai .io-lbl{color:var(--cyan);}
+.io-box.ai{background:rgba(95,216,255,0.07);border-color:rgba(95,216,255,0.18);}
+.io-box.human .io-lbl{color:var(--gold);}
+.io-box.human{background:rgba(232,195,104,0.05);border-color:rgba(232,195,104,0.16);}
+.io-box ul{list-style:none;}
+.io-box li{font-size:13px;color:var(--dim);line-height:1.6;padding-left:15px;position:relative;margin-bottom:5px;}
+.io-box li::before{content:'';position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:var(--faint);}
+.io-box.ai li::before{background:var(--cyan);box-shadow:0 0 6px rgba(95,216,255,0.6);}
+.io-box.human li::before{background:var(--gold);}
+.highlight{margin-top:16px;background:linear-gradient(120deg,rgba(95,216,255,0.07),rgba(167,139,250,0.05));border:1px solid var(--line);border-radius:var(--r-sm);padding:16px 20px;font-size:13.5px;color:var(--dim);line-height:1.8;}
+.highlight strong{color:var(--cyan);font-weight:700;}
+
+/* 截图:右栏撑满 */
+.shot{margin:0;min-height:0;display:flex;flex-direction:column;flex:1;}
+.shot-frame{flex:1;min-height:0;display:flex;flex-direction:column;position:relative;border:1px solid var(--line-hi);border-radius:14px;overflow:hidden;background:#070a14;box-shadow:0 24px 60px rgba(0,0,0,0.5);cursor:zoom-in;transition:box-shadow .5s,border-color .5s;}
+.shot:hover .shot-frame{border-color:rgba(95,216,255,0.45);box-shadow:0 24px 60px rgba(0,0,0,0.5),0 0 44px rgba(95,216,255,0.14);}
+.shot-frame::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,rgba(95,216,255,0.08),transparent 35%);pointer-events:none;transition:opacity .5s;}
+.shot:hover .shot-frame::after{opacity:0;}
+.shot-frame img{flex:1;min-height:0;width:100%;height:100%;object-fit:contain;background:#070a14;}
+.shot-bar{display:flex;align-items:center;gap:7px;padding:9px 14px;background:rgba(5,7,15,0.85);border-bottom:1px solid var(--line);}
+.shot-bar i{width:9px;height:9px;border-radius:50%;}
+.shot-bar i:nth-child(1){background:#ff5f57;}
+.shot-bar i:nth-child(2){background:#febc2e;}
+.shot-bar i:nth-child(3){background:#28c840;}
+.shot-bar span{margin-left:8px;font-family:var(--font-num);font-size:9.5px;letter-spacing:1.5px;color:var(--faint);text-transform:uppercase;}
+.shot figcaption{display:block;flex-shrink:0;margin-top:12px;font-size:13px;color:var(--faint);text-align:center;line-height:1.6;}
+
+/* 截图占位槽 */
+.shot-frame--empty{cursor:default;border-style:dashed;border-color:rgba(148,184,255,0.22);box-shadow:none;}
+.shot-frame--empty::after{display:none;}
+.shot:hover .shot-frame--empty{border-color:rgba(148,184,255,0.22);box-shadow:none;}
+.shot-empty{flex:1;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;margin:14px;border:1.5px dashed rgba(148,184,255,0.20);border-radius:10px;color:var(--faint);}
+.shot-empty i{font-size:26px;color:rgba(148,184,255,0.35);}
+.shot-empty b{font-size:13px;font-weight:600;color:var(--dim);letter-spacing:1px;}
+.shot-empty span{font-family:var(--font-num);font-size:10px;letter-spacing:1px;color:var(--faint);}
+.shot figcaption::before{content:'▸ ';color:var(--cyan);}
+
+/* ===== Reveal 纵深入场 ===== */
+.reveal{opacity:0;transform:perspective(1000px) rotateX(9deg) translateY(44px) translateZ(-40px);transform-origin:top center;transition:opacity .9s cubic-bezier(0.16,1,0.3,1),transform .9s cubic-bezier(0.16,1,0.3,1);}
+.reveal.in{opacity:1;transform:none;}
+.d1{transition-delay:.08s;}.d2{transition-delay:.16s;}.d3{transition-delay:.24s;}.d4{transition-delay:.32s;}
+
+/* ===== Footer ===== */
+.footer{text-align:center;padding:44px 20px;color:var(--faint);font-size:13px;border-top:1px solid var(--line);margin-top:40px;position:relative;z-index:1;}
+.footer .f-mark{font-family:var(--font-num);font-size:10px;letter-spacing:3px;color:var(--cyan);display:block;margin-bottom:8px;text-transform:uppercase;}
+
+/* ===== 响应式 ===== */
+@media(max-width:1024px){
+  .hero-inner{grid-template-columns:1fr;}
+  .hero-stage{height:380px;max-width:520px;}
+  .stage-wrap{grid-template-columns:1fr;flex:none;}
+  #steps{height:auto;min-height:100vh;}
+  .stage-col{display:block;}
+  .stage{flex:none;min-height:auto;}
+  .panel{position:static;}
+  .deck{height:auto;overflow:visible;}
+  .deck-body{grid-template-columns:1fr;}
+  .deck-flow{flex-direction:column;gap:10px;padding:14px 16px;}
+  .deck-flow .io-box{padding:0;}
+  .deck-flow .io-box + .io-box{border-left:none;border-top:1px dashed rgba(148,184,255,0.16);padding-top:10px;}
+  .dh-num{font-size:29px;min-width:40px;}
+  .deck-main{overflow:visible;padding-right:0;}
+  .deck-main::after{display:none;}
+  .deck-side{margin-top:4px;}
+  .shot-frame img{max-height:36vh;height:auto;}
+  .rail{position:static;}
+  .rail-track{display:flex;overflow-x:auto;padding:6px 2px 14px;gap:8px;-webkit-overflow-scrolling:touch;}
+  .rail-track::before,.rail-track::after{display:none;}
+  .rail-node{flex-shrink:0;border:1px solid var(--line);padding:8px 14px;}
+  .rail-node::before{display:none;}
+  .loop{width:100%;aspect-ratio:auto;display:flex;flex-direction:column;gap:12px;margin-top:8px;}
+  .loop-ring,.loop-core{display:none;}
+  .loop-node{position:static;width:100%;transform:none!important;}
+  .loop-back{display:block;}
+  .dots{display:none;}
+}
+@media(max-width:640px){
+  .section{padding:64px 20px;}
+  .hero{padding-top:100px;}
+  .hero-title{font-size:34px;}
+  .sec-title{font-size:27px;}
+  .hero-stage{height:auto;perspective:none;display:flex;flex-direction:column;gap:14px;}
+  .float-panel{position:static;width:100%!important;transform:none!important;animation:none;}
+  .hero-floor{display:none;}
+  .nav{padding:0 20px;}
+  .nav-links{display:none;}
+  .shot-frame{transform:none;}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;}
+}
+</style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="bg-stars"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-nebula a"></div>
+  <div class="bg-nebula b"></div>
+  <div class="bg-nebula c"></div>
+</div>
+<div class="grain"></div>
+<div class="progress" id="progress"></div>
+
+<div class="dots" id="dots">
+  <div class="dot active" data-sec="hero"><span>首页</span><i></i></div>
+  <div class="dot" data-sec="overview"><span>飞轮闭环</span><i></i></div>
+  <div class="dot" data-sec="steps"><span>十步流程</span><i></i></div>
+</div>
+
+<div class="loader" id="loader">
+  <div class="loader-stage"><div class="loader-ring"></div></div>
+  <div class="loader-text">Loading Case Study</div>
+</div>
+
+<nav class="nav" id="nav">
+  <div class="nav-brand">
+    <div class="logo-mark"><i class="fa-solid fa-network-wired"></i></div>
+    <div class="brand-txt">
+      <b>ProjOne</b>
+      <span>AI Agent × 项目全生命周期管理</span>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="#overview">案例纵览</a>
+    <a href="#steps">十步流程</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ================= HERO ================= -->
+  <section class="section hero" id="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="sec-label reveal">03 · Case Study</div>
+        <h1 class="hero-title reveal d1">AI Agent 驱动<br><span class="grad">项目全生命周期</span>管理</h1>
+        <p class="hero-desc reveal d2">看 AI 如何贯穿<b>从需求到复盘</b>的每一个环节,把过程沉淀为<b>持续增强</b>的研发资产。</p>
+        <div class="hero-hint reveal d4"><span class="line"></span>Scroll · 逐层展开</div>
+      </div>
+      <div class="hero-stage reveal d2" id="heroStage">
+        <div class="float-panel fp-1" data-depth="18">
+          <div class="fp-cap">Efficiency</div>
+          <div class="fp-val">↑20%</div>
+          <div class="fp-sub">研发效率提升</div>
+          <div class="fp-bar"><i></i></div>
+        </div>
+        <div class="float-panel fp-2" data-depth="32">
+          <div class="fp-cap">Doc Coverage</div>
+          <div class="fp-val">全写完</div>
+          <div class="fp-sub">文档 Agent 覆盖,减少人工</div>
+          <div class="fp-bar"><i></i></div>
+        </div>
+        <div class="float-panel fp-3" data-depth="48">
+          <div class="fp-cap">Knowledge Loop</div>
+          <div class="fp-val">↺ 飞轮</div>
+          <div class="fp-sub">知识沉淀持续增强</div>
+          <div class="fp-bar"><i></i></div>
+        </div>
+        <div class="hero-floor"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 案例纵览 ================= -->
+  <section class="section" id="overview">
+    <div class="sec-label reveal">Overview · 案例纵览</div>
+    <h2 class="sec-title reveal d1">一条需求的<span class="grad">飞轮闭环</span></h2>
+    <p class="sec-desc reveal d2">Agent 从需求分析出发,陪伴需求走完 AI 敏捷流程迭代,最终完成知识沉淀,形成持续增强的研发知识飞轮。</p>
+
+    <div class="loop reveal d3">
+      <svg class="loop-ring" viewBox="0 0 400 400" aria-hidden="true">
+        <defs>
+          <marker id="arw1" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5fd8ff"/></marker>
+          <marker id="arw2" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#a78bfa"/></marker>
+          <marker id="arw3" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3dffb0"/></marker>
+        </defs>
+        <circle class="loop-base" cx="200" cy="200" r="150"/>
+        <path class="loop-arc a1" d="M263.4 64.05 A150 150 0 0 1 349.4 213.1" marker-end="url(#arw1)"/>
+        <path class="loop-arc a2" d="M286 322.9 A150 150 0 0 1 113.96 322.9" marker-end="url(#arw2)"/>
+        <path class="loop-arc a3" d="M50.57 213.08 A150 150 0 0 1 136.6 64.05" marker-end="url(#arw3)"/>
+      </svg>
+      <div class="loop-core">
+        <i class="fa-solid fa-rotate"></i>
+        <b>知识飞轮</b>
+        <span>持续增强</span>
+      </div>
+      <div class="loop-node ln-1"><div class="fw-num">01</div><div class="fw-name">Agent 需求分析</div><div class="fw-sub">需求录入 · 澄清 · 拆解</div></div>
+      <div class="loop-node ln-2"><div class="fw-num">02</div><div class="fw-name">AI 敏捷流程迭代</div><div class="fw-sub">分工 · 开发 · 测试 · 文档 · 上线</div></div>
+      <div class="loop-node ln-3"><div class="fw-num">03</div><div class="fw-name">知识沉淀</div><div class="fw-sub">复盘 · 资产回流 · 飞轮增强</div></div>
+      <div class="loop-back">↺ 资产回流,回到 01 Agent 需求分析,开启下一轮迭代</div>
+    </div>
+  </section>
+
+  <!-- ================= 十步流程 ================= -->
+  <section class="section" id="steps">
+    <div class="sec-label reveal">Pipeline · 十步流程</div>
+    <h2 class="sec-title reveal d1">AI 在每一步的<span class="grad">具体参与</span></h2>
+    <p class="sec-desc reveal d2">点击左侧流程节点,或使用上下步按钮,逐层查看这条需求如何走完十个关键环节。</p>
+
+    <div class="stage-wrap reveal d2">
+      <!-- 左:步骤轨道 -->
+      <div class="rail" id="rail">
+        <div class="rail-track" id="railTrack">
+          <div class="rail-node active" data-target="detail-01"><span class="rn-num">01</span><span class="rn-name">需求</span><span class="rn-tag">录入</span></div>
+          <div class="rail-node" data-target="detail-02"><span class="rn-num">02</span><span class="rn-name">AI 澄清</span><span class="rn-tag">已落地</span></div>
+          <div class="rail-node" data-target="detail-03"><span class="rn-num">03</span><span class="rn-name">人工确认</span><span class="rn-tag">决策</span></div>
+          <div class="rail-node" data-target="detail-04"><span class="rn-num">04</span><span class="rn-name">AI 拆解</span><span class="rn-tag">已落地</span></div>
+          <div class="rail-node" data-target="detail-05"><span class="rn-num">05</span><span class="rn-name">AI 分工</span><span class="rn-tag">工作台</span></div>
+          <div class="rail-node" data-target="detail-06"><span class="rn-num">06</span><span class="rn-name">开发</span><span class="rn-tag">间接</span></div>
+          <div class="rail-node" data-target="detail-07"><span class="rn-num">07</span><span class="rn-name">测试</span><span class="rn-tag">已落地</span></div>
+          <div class="rail-node" data-target="detail-08"><span class="rn-num">08</span><span class="rn-name">文档</span><span class="rn-tag">16 类</span></div>
+          <div class="rail-node" data-target="detail-09"><span class="rn-num">09</span><span class="rn-name">上线</span><span class="rn-tag">评估</span></div>
+          <div class="rail-node" data-target="detail-10"><span class="rn-num">10</span><span class="rn-name">复盘</span><span class="rn-tag">纪要</span></div>
+          <div class="rail-node" data-target="detail-cycle"><span class="rn-num">↺</span><span class="rn-name">资产沉淀</span><span class="rn-tag">飞轮</span></div>
+        </div>
+      </div>
+
+      <!-- 右:详情舞台 -->
+      <div class="stage-col">
+        <div class="stage-nav">
+          <div class="stage-count"><b id="stageCur">01</b> / <span id="stageTotal">11</span></div>
+          <div class="stage-btns">
+            <button class="stage-btn" id="btnPrev" aria-label="上一步"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="stage-btn" id="btnNext" aria-label="下一步"><i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+
+        <div class="stage" id="stage">
+
+          <div class="panel active" id="detail-01">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">01</div>
+                <div class="dh-txt"><h4>需求录入</h4></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <p>需求是业务诉求的统一入口,记录原始描述与上下文。本例中「需求导入解析太慢,需要改造成异步任务」被录入系统,随后触发「需求澄清」——从这里开始,AI 围绕这条需求持续参与。</p>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>ProjOne · Demand Import</span></div>
+                      <img src="assets/step-01-demand-import.png" alt="需求导入完成界面" loading="lazy" />
+                    </div>
+                    <figcaption>图:需求导入完成,生成 53 条需求</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-02">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">02</div>
+                <div class="dh-txt">
+                  <h4>需求分析 · 需求澄清<span class="flow-key">需求澄清</span><span class="badge">已落地</span></h4>
+                  <p class="flow-lead">AI 读取需求原始描述与上下文,识别不明确、易歧义、有风险的点,产出可确认的澄清问题与结构化改写建议。</p>
+                </div>
+              </div>
+              <div class="deck-flow">
+                <div class="io-box"><div class="io-lbl"><i class="fa-solid fa-arrow-right-to-bracket"></i> 输入</div><ul><li>需求原始描述</li><li>故事 / 模块上下文</li></ul></div>
+                <div class="io-box ai"><div class="io-lbl"><i class="fa-solid fa-robot"></i> AI 做什么</div><ul><li>定位不明确点</li><li>生成澄清问题清单</li><li>识别风险项</li></ul></div>
+                <div class="io-box"><div class="io-lbl"><i class="fa-solid fa-box-archive"></i> 产出</div><ul><li>AI 优化后的需求描述</li><li>待确认问题 + 风险列表</li></ul></div>
+                <div class="io-box human"><div class="io-lbl"><i class="fa-solid fa-user-check"></i> 人工确认</div><ul><li>WAITING 补充信息</li><li>「确认应用」定稿</li></ul></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>AI 运行中心 · Clarification</span></div>
+                      <img src="assets/step-02-ai-clarification.png" alt="AI 需求澄清界面" loading="lazy" />
+                    </div>
+                    <figcaption>图:AI 运行中心的需求澄清界面</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-03">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">03</div>
+                <div class="dh-txt"><h4>人工确认</h4></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <p>AI 出建议但不能替代责任人。关键动作——「<b>确认应用</b>」「<b>确认任务拆解</b>」「<b>确认分工</b>」——必须人工点击,并记录确认人与时间。确认不是不信任 AI,而是把<b>决策权与管理责任</b>留在人手里。在本案例中,人工补充了 2 个工程约束后,澄清环节即完成。</p>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame shot-frame--empty">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>ProjOne · Confirm</span></div>
+                      <div class="shot-empty">
+                        <i class="fa-regular fa-image"></i>
+                        <b>截图待补充</b>
+                        <span>assets/step-03-confirm.png</span>
+                      </div>
+                    </div>
+                    <figcaption>图:人工确认操作界面(待补充)</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-04">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">04</div>
+                <div class="dh-txt">
+                  <h4>需求拆解<span class="flow-key">需求拆解</span><span class="badge">已落地</span></h4>
+                  <p class="flow-lead">AI 把澄清后的需求拆解为一组可执行待办草案,并为每条标注所属模块、改动范围、复杂度与工作量,形成分配前的结构化基础。</p>
+                </div>
+              </div>
+              <div class="deck-flow">
+                <div class="io-box"><div class="io-lbl"><i class="fa-solid fa-arrow-right-to-bracket"></i> 输入</div><ul><li>澄清后需求</li><li>故事描述 + 代码上下文</li></ul></div>
+                <div class="io-box ai"><div class="io-lbl"><i class="fa-solid fa-robot"></i> AI 做什么</div><ul><li>拆分可执行待办</li><li>判定模块归属</li><li>评估改动范围/工作量</li></ul></div>
+                <div class="io-box"><div class="io-lbl"><i class="fa-solid fa-box-archive"></i> 产出</div><ul><li>待办草案 todo-list</li><li>模块 / 复杂度 / 实现偏向</li></ul></div>
+                <div class="io-box human"><div class="io-lbl"><i class="fa-solid fa-user-check"></i> 人工确认</div><ul><li>逐条调整待办</li><li>「确认任务拆解」</li></ul></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>ProjOne · Task Decomposition</span></div>
+                      <img src="assets/step-04-task-decomposition.png" alt="AI 需求拆解界面" loading="lazy" />
+                    </div>
+                    <figcaption>图:AI 需求拆解结果,产出可执行待办</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-05">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">05</div>
+                <div class="dh-txt">
+                  <h4>任务分配 · 智能任务分工<span class="flow-key">智能任务分工工作台</span><span class="badge plan">工作台承载</span></h4>
+                  <p class="flow-lead">拆解产出的待办进入「智能任务分工工作台」。AI 结合当前迭代工作量、组员 Markdown 能力档案与组长分工策略,为每条待办给出<b>建议负责人 + 理由 + 置信度 + 工作量前后对比</b>,组长确认后正式落到负责人。</p>
+                </div>
+              </div>
+              <div class="deck-flow">
+                <div class="io-box"><div class="io-lbl"><i class="fa-solid fa-arrow-right-to-bracket"></i> 输入</div><ul><li>待办 + 复杂度/模块</li><li>成员能力档案</li><li>组长分工策略</li></ul></div>
+                <div class="io-box ai"><div class="io-lbl"><i class="fa-solid fa-robot"></i> AI 做什么</div><ul><li>逐条给建议负责人</li><li>引用任务特征 + 能力依据说明理由</li><li>算分配前后工作量变化</li></ul></div>
+                <div class="io-box"><div class="io-lbl"><i class="fa-solid fa-box-archive"></i> 产出</div><ul><li>分工方案 + 理由/置信度</li><li>风险标记 riskFlags</li></ul></div>
+                <div class="io-box human"><div class="io-lbl"><i class="fa-solid fa-user-check"></i> 人工确认</div><ul><li>逐条 / 批量确认</li><li>写入负责人 · 记录确认人</li></ul></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <div class="highlight">
+                    <strong>说明:</strong>「任务分配」由需求拆解产物(待办草案)与「智能任务分工工作台」共同承载;
+                    AI 只出建议、不自动生效,且每条建议必须给出可核对的理由与工作量影响,避免「单条合理、整体失衡」。
+                  </div>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>ProjOne · Assignment Workbench</span></div>
+                      <img src="assets/step-05-task-assignment.png" alt="智能任务分工工作台" loading="lazy" />
+                    </div>
+                    <figcaption>图:智能任务分工工作台</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-06">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">06</div>
+                <div class="dh-txt"><h4>开发</h4></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <p>开发阶段 AI 当前主要通过<b>拆解和分工</b>间接参与,确保每一条待办都有明确的模块归属与实现偏向。UCode 编码辅助与 AI 代码评审在后续规划中。</p>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame shot-frame--empty">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>UCode · Dev Assist</span></div>
+                      <div class="shot-empty">
+                        <i class="fa-regular fa-image"></i>
+                        <b>截图待补充</b>
+                        <span>assets/step-06-development.png</span>
+                      </div>
+                    </div>
+                    <figcaption>图:开发阶段界面(待补充)</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-07">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">07</div>
+                <div class="dh-txt"><h4>测试</h4></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <p>AI 已落地<b>测试用例文档生成</b>,基于需求与模块自动产出单元 / 集成测试用例。本案例中 Agent 识别了成功 / 失败 / 刷新 / 重复提交 / 重解析五种测试场景。缺陷记录回流至过程级资产,成为后续判断依据。</p>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>文档生成中心 · Test Doc</span></div>
+                      <img src="assets/step-07-test-document.png" alt="AI 测试文档生成" loading="lazy" />
+                    </div>
+                    <figcaption>图:文档生成中心 - 敏捷测试文档</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-08">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">08</div>
+                <div class="dh-txt"><h4>文档</h4></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <p>文档阶段覆盖需求评审表、需规、详设、测试用例、上线评审纪要等 <b>16 类已落地文档</b>,按 7 个迭代阶段自动生成。模板类文档走路径 B(后端直连),需规与测试文档走路径 A(Runner 异步批量)。</p>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>文档生成中心 · Demand Doc</span></div>
+                      <img src="assets/step-08-demand-document.png" alt="AI 文档生成中心" loading="lazy" />
+                    </div>
+                    <figcaption>图:文档生成中心 - 需求梳理文档</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-09">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">09</div>
+                <div class="dh-txt"><h4>上线</h4></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <p>AI 辅助产出<b>投产风险评估表、生产健康检查表、扫雷检查单</b>等上线文档,帮助识别变更风险与遗漏项。本案例涉及前端状态机改造、后端任务实体新增,AI 评估了数据库变更与接口兼容性风险。</p>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame shot-frame--empty">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>ProjOne · Release Check</span></div>
+                      <div class="shot-empty">
+                        <i class="fa-regular fa-image"></i>
+                        <b>截图待补充</b>
+                        <span>assets/step-09-release.png</span>
+                      </div>
+                    </div>
+                    <figcaption>图:上线风险评估界面(待补充)</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-10">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">10</div>
+                <div class="dh-txt"><h4>复盘</h4></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <p>AI 自动生成<b>回顾会纪要与改进计划初稿</b>;复盘结论回流为过程级资产,反哺下一轮需求理解与拆解。迭代结束后,团队可基于 AI 产出的纪要快速对齐改进方向。</p>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame shot-frame--empty">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>ProjOne · Retrospective</span></div>
+                      <div class="shot-empty">
+                        <i class="fa-regular fa-image"></i>
+                        <b>截图待补充</b>
+                        <span>assets/step-10-review.png</span>
+                      </div>
+                    </div>
+                    <figcaption>图:回顾会纪要生成界面(待补充)</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="detail-cycle">
+            <div class="deck">
+              <div class="deck-head">
+                <div class="dh-num">↺</div>
+                <div class="dh-txt"><h4>资产沉淀</h4></div>
+              </div>
+              <div class="deck-body">
+                <div class="deck-main">
+                  <p>AI 的每次产出——澄清问题、确认记录、拆解偏差、评审意见、上线问题——都被记录并回流。资产越完整,AI 判断越有依据;AI 参与越深,资产沉淀越快。这是整个系统<b>持续增强的基础</b>,也是「围绕项目管理体系运行」的最终落点。</p>
+                </div>
+                <div class="deck-side">
+                  <figure class="shot">
+                    <div class="shot-frame shot-frame--empty">
+                      <div class="shot-bar"><i></i><i></i><i></i><span>ProjOne · Knowledge Assets</span></div>
+                      <div class="shot-empty">
+                        <i class="fa-regular fa-image"></i>
+                        <b>截图待补充</b>
+                        <span>assets/step-cycle-assets.png</span>
+                      </div>
+                    </div>
+                    <figcaption>图:过程级资产沉淀界面(待补充)</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="footer">
+  <span class="f-mark">ProjOne · Case Study 03</span>
+  提取自《让 AI Agent 围绕项目管理体系运行》 · AI Agent 驱动项目全生命周期管理
+</div>
+
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" src="" alt="截图放大预览">
+  <div class="lb-cap" id="lightboxCap"></div>
+</div>
+
+<script>
+/* Loader */
+window.addEventListener('load',()=>{setTimeout(()=>document.getElementById('loader').classList.add('done'),500);});
+
+/* Nav + 滚动进度 */
+const nav=document.getElementById('nav'),progress=document.getElementById('progress');
+window.addEventListener('scroll',()=>{
+  nav.classList.toggle('s',window.scrollY>30);
+  const h=document.documentElement.scrollHeight-window.innerHeight;
+  progress.style.width=(h>0?(window.scrollY/h)*100:0)+'%';
+},{passive:true});
+
+/* Reveal 纵深入场 */
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* Hero 视差 */
+const heroStage=document.getElementById('heroStage');
+if(heroStage && matchMedia('(pointer:fine)').matches && innerWidth>1024){
+  const panels=heroStage.querySelectorAll('.float-panel');
+  document.getElementById('hero').addEventListener('mousemove',e=>{
+    const r=heroStage.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-0.5, y=(e.clientY-r.top)/r.height-0.5;
+    panels.forEach(p=>{
+      const d=+p.dataset.depth||20;
+      p.style.translate=`${-x*d}px ${-y*d*0.6}px`;
+    });
+  });
+}
+
+/* 十步流程舞台 */
+const order=['detail-01','detail-02','detail-03','detail-04','detail-05','detail-06','detail-07','detail-08','detail-09','detail-10','detail-cycle'];
+const rail=document.getElementById('rail');
+const nodes=[...document.querySelectorAll('.rail-node')];
+const stageCur=document.getElementById('stageCur');
+const btnPrev=document.getElementById('btnPrev'),btnNext=document.getElementById('btnNext');
+let cur=0;
+
+function show(i){
+  cur=Math.max(0,Math.min(order.length-1,i));
+  nodes.forEach(n=>n.classList.toggle('active',n.dataset.target===order[cur]));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===order[cur]));
+  const num=nodes[cur].querySelector('.rn-num').textContent;
+  stageCur.textContent=num.padStart?num:num;
+  btnPrev.disabled=cur===0;
+  btnNext.disabled=cur===order.length-1;
+  rail.style.setProperty('--p',(cur/(order.length-1))*100+'%');
+  refreshActiveDeck();
+  /* 移动端让激活节点滚进视野 */
+  if(innerWidth<=1024)nodes[cur].scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+}
+nodes.forEach((n,i)=>n.addEventListener('click',()=>show(i)));
+btnPrev.addEventListener('click',()=>show(cur-1));
+btnNext.addEventListener('click',()=>show(cur+1));
+
+/* 面板超高时的底部渐隐提示 */
+function updateDeckFade(el){
+  const more=el.scrollHeight>el.clientHeight+8&&el.scrollTop+el.clientHeight<el.scrollHeight-8;
+  el.classList.toggle('show-fade',more);
+}
+document.querySelectorAll('.deck-main').forEach(d=>{
+  d.addEventListener('scroll',()=>updateDeckFade(d),{passive:true});
+});
+function refreshActiveDeck(){
+  const d=document.querySelector('.panel.active .deck-main');
+  if(d)requestAnimationFrame(()=>{d.scrollTop=0;updateDeckFade(d);});
+}
+window.addEventListener('resize',refreshActiveDeck);
+
+/* 圆点导航 */
+const dots=[...document.querySelectorAll('.dot')];
+const secIO=new IntersectionObserver((es)=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      dots.forEach(d=>d.classList.toggle('active',d.dataset.sec===e.target.id));
+    }
+  });
+},{threshold:0.35});
+['hero','overview','steps'].forEach(id=>secIO.observe(document.getElementById(id)));
+dots.forEach(d=>d.addEventListener('click',()=>{
+  document.getElementById(d.dataset.sec).scrollIntoView({behavior:'smooth'});
+}));
+
+/* 截图灯箱 */
+const lightbox=document.getElementById('lightbox');
+const lbImg=document.getElementById('lightboxImg');
+const lbCap=document.getElementById('lightboxCap');
+document.querySelectorAll('.shot-frame').forEach(f=>{
+  f.addEventListener('click',()=>{
+    const img=f.querySelector('img');
+    if(!img)return;
+    lbImg.src=img.src;
+    lbCap.textContent=f.closest('.shot')?.querySelector('figcaption')?.textContent||'';
+    lightbox.classList.add('open');
+    document.body.style.overflow='hidden';
+  });
+});
+function closeLightbox(){
+  lightbox.classList.remove('open');
+  document.body.style.overflow='';
+}
+lightbox.addEventListener('click',closeLightbox);
+
+/* 键盘:←→ 切步骤,Esc 关灯箱 */
+document.addEventListener('keydown',e=>{
+  if(lightbox.classList.contains('open')){
+    if(e.key==='Escape')closeLightbox();
+    return;
+  }
+  const steps=document.getElementById('steps');
+  const r=steps.getBoundingClientRect();
+  if(r.top<innerHeight&&r.bottom>0){
+    if(e.key==='ArrowLeft')show(cur-1);
+    if(e.key==='ArrowRight')show(cur+1);
+  }
+});
+show(0);
+</script>
+
+</body>
+</html>

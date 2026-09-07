@@ -1,0 +1,2447 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>多智能体协作原理与项目管理实践验证</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- 模板原字体 + design.md CJK 章节推荐的 Noto Sans SC 配对 -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<script src="deck-stage.js"></script>
+<style>
+  :root {
+    --bg: #ECECE8;
+    --ink: #0A0A0A;
+    --paper: #F5F4EF;
+    --accent: #E6FF3D;        /* signature neon yellow */
+    --line: #0A0A0A;
+    --muted: #8A8A85;
+  }
+  html, body { margin: 0; padding: 0; background: #1a1a1a; }
+  body { font-family: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); }
+  deck-stage { background: #1a1a1a; }
+
+  /* --- shared slide chrome ------------------------------------------ */
+  section.slide {
+    background: var(--bg);
+    color: var(--ink);
+    overflow: hidden;
+  }
+  .frame {
+    position: absolute; inset: 40px;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 12px;
+  }
+  .card {
+    background: var(--paper);
+    position: relative;
+    overflow: hidden;
+  }
+  .card.ink   { background: var(--ink);   color: var(--paper); }
+  .card.lemon { background: var(--accent); color: var(--ink); }
+  .card.photo { background: #111; color: #fff; }
+
+  /* slide number tag, bottom-left of every slide */
+  .pagenum {
+    position: absolute;
+    left: 0; bottom: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 24px;
+    padding: 14px 22px;
+    letter-spacing: 0.04em;
+  }
+  .pagenum.invert { background: var(--ink); color: var(--paper); }
+  .pagenum.lemon  { background: var(--accent); color: var(--ink); }
+
+  .corner-mark {
+    position: absolute;
+    top: 22px; right: 22px;
+    width: 36px; height: 36px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 4px;
+  }
+  .corner-mark span { background: currentColor; }
+  .corner-mark span:nth-child(2) { background: transparent; }
+
+  .copyright {
+    position: absolute;
+    left: 22px; bottom: 22px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--ink);
+    opacity: 0.85;
+  }
+
+  .arrow {
+    width: 64px; height: 64px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .arrow svg { width: 100%; height: 100%; }
+
+  /* --- typography utilities ---------------------------------------- */
+  h1, h2, h3, p { margin: 0; }
+  .display {
+    font-weight: 700;
+    font-size: 132px;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+  .title {
+    font-weight: 700;
+    font-size: 88px;
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+    text-transform: uppercase;
+  }
+  .subtitle {
+    font-weight: 700;
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+  .body {
+    font-size: 28px;
+    line-height: 1.35;
+    font-weight: 400;
+  }
+  .label {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 24px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.7;
+  }
+  .stat-num {
+    font-weight: 700;
+    font-size: 156px;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+  }
+  .stat-num.sm { font-size: 96px; }
+
+  /* --- slide 1: COVER ---------------------------------------------- */
+  .s-cover .panel-photo-l { grid-column: 1 / span 3; grid-row: 1 / span 8; background: #0a0a0a; position: relative; overflow: hidden; }
+  .s-cover .panel-photo-l .ph { position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 80% at 30% 30%, #2a2a2a 0%, #0a0a0a 70%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 2px, transparent 2px 8px);
+  }
+  .s-cover .panel-photo-l::after {
+    content: "PORTRAIT / B&W";
+    position: absolute; left: 16px; bottom: 56px;
+    font-family: "JetBrains Mono", monospace; font-size: 13px;
+    color: rgba(255,255,255,.55); letter-spacing: .12em;
+  }
+  .s-cover .panel-mid  { grid-column: 4 / span 5; grid-row: 1 / span 5; background: var(--accent); position: relative; }
+  .s-cover .panel-titletile { grid-column: 4 / span 5; grid-row: 6 / span 3; background: var(--accent); position: relative; }
+  .s-cover .panel-photo-r { grid-column: 9 / span 4; grid-row: 1 / span 5; background:#111; position: relative; overflow: hidden; }
+  .s-cover .panel-photo-r .ph { position: absolute; inset: 0;
+    background:
+      radial-gradient(80% 60% at 60% 40%, #1f1f1f 0%, #0b0b0b 80%),
+      repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 8px);
+  }
+  .s-cover .panel-photo-r::after {
+    content: "PORTRAIT / B&W";
+    position: absolute; left: 16px; bottom: 16px;
+    font-family: "JetBrains Mono", monospace; font-size: 13px;
+    color: rgba(255,255,255,.55); letter-spacing: .12em;
+  }
+  .s-cover .panel-cap   { grid-column: 9 / span 4; grid-row: 6 / span 3; background: var(--paper); position: relative; }
+  .s-cover .qr {
+    position: absolute; top: 28px; left: 28px;
+    width: 90px; height: 90px; background: var(--ink);
+    display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); gap: 0;
+  }
+  .s-cover .qr i { background: var(--ink); }
+  .s-cover .qr i.k { background: var(--accent); }
+  .s-cover .title-block {
+    position: absolute; left: 40px; right: 40px; bottom: 40px;
+  }
+  .s-cover .meta-l {
+    position: absolute; left: 40px; bottom: 40px;
+    font-family: "JetBrains Mono", monospace; font-size: 24px; line-height: 1.4;
+    letter-spacing: .04em;
+  }
+  .s-cover .blockmark {
+    position: absolute; right: 40px; bottom: 40px;
+    width: 56px; height: 56px;
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 4px;
+  }
+  .s-cover .blockmark span:nth-child(1) { background: var(--ink); }
+  .s-cover .blockmark span:nth-child(2) { background: transparent; }
+  .s-cover .blockmark span:nth-child(3) { background: transparent; }
+  .s-cover .blockmark span:nth-child(4) { background: var(--ink); }
+
+  /* --- slide 2: CONTENTS ------------------------------------------- */
+  /* Contents (TOC) — head takes the top 2 grid rows, then 6 cards in a
+     3×2 grid where each card explicitly spans 3 grid rows. The 8-row
+     frame is fully used: head (2) + cards row 1 (3) + cards row 2 (3) = 8. */
+  .s-toc .frame   { gap: 18px; }
+  .s-toc .head    { grid-column: 1 / span 12; grid-row: 1 / span 2; padding: 36px 44px; display: flex; align-items: center; justify-content: space-between; }
+  .s-toc .head h1 { font-size: 92px; font-weight: 700; text-transform: uppercase; letter-spacing: -.015em; line-height: .95; }
+  .s-toc .row     { grid-column: span 4; grid-row: span 3; padding: 40px 44px; display: flex; flex-direction: column; justify-content: center; gap: 22px; min-height: 0; }
+  .s-toc .row .num{ font-family: "JetBrains Mono", monospace; font-size: 22px; letter-spacing: .08em; }
+  .s-toc .row h3  { font-size: 36px; font-weight: 700; text-transform: uppercase; letter-spacing: -.01em; line-height: 1.05; }
+  .s-toc .row p   { font-size: 20px; line-height: 1.5; opacity: .82; }
+  .s-toc .row[data-om-validate-skip] { display: none; }
+
+  /* --- slide 3: DIGITS IN NUMBERS ---------------------------------- */
+  .s-stats .accent-l    { grid-column: 1 / span 2; grid-row: 1 / span 8; background: var(--accent); position: relative; }
+  .s-stats .accent-l .plus { position: absolute; top: 28px; left: 28px; font-weight: 700; font-size: 48px; }
+  .s-stats .accent-l .lab  { position: absolute; bottom: 24px; left: 28px; font-family: "JetBrains Mono", monospace; font-size: 24px; letter-spacing: .08em; text-transform: uppercase; }
+  .s-stats .copy        { grid-column: 3 / span 4; grid-row: 1 / span 8; padding: 36px 32px; background: var(--paper); position: relative; display: flex; flex-direction: column; }
+  .s-stats .copy h2     { font-size: 76px; font-weight: 700; text-transform: uppercase; letter-spacing: -.015em; line-height: .95; }
+  .s-stats .copy h2 mark{ background: var(--accent); color: var(--ink); padding: 0 6px; }
+  .s-stats .copy p      { font-size: 24px; line-height: 1.45; margin-top: 24px; max-width: 36ch; }
+  .s-stats .stat-a      { grid-column: 7 / span 3; grid-row: 1 / span 2; background: var(--paper); padding: 24px 28px; }
+  .s-stats .stat-b      { grid-column: 10 / span 3; grid-row: 1 / span 2; background: var(--paper); padding: 24px 28px; }
+  .s-stats .stat-c      { grid-column: 7 / span 3; grid-row: 3 / span 2; background: var(--paper); padding: 24px 28px; }
+  .s-stats .stat-big    { grid-column: 7 / span 6; grid-row: 5 / span 4; background: var(--accent); padding: 28px 36px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+  .s-stats .stat-big .v { font-size: 240px; font-weight: 700; line-height: .85; letter-spacing: -.04em; }
+  .s-stats .stat-big .arrow-out { position: absolute; right: 28px; bottom: 28px; }
+
+  /* --- slide 4: KEY FEATURES --------------------------------------- */
+  .s-features .head { grid-column: 1 / span 12; grid-row: 1 / span 2; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; background: var(--paper); }
+  .s-features .head h2 { font-size: 88px; font-weight: 700; text-transform: uppercase; letter-spacing: -.015em; }
+  .s-features .feat { grid-column: span 4; grid-row: span 6; background: var(--paper); padding: 28px; display: flex; flex-direction: column; gap: 18px; position: relative; }
+  .s-features .feat .pic { aspect-ratio: 16 / 10; background:#111; position: relative; overflow: hidden; }
+  .s-features .feat .pic .ph { position: absolute; inset: 0;
+    background:
+      radial-gradient(80% 60% at 50% 50%, #1f1f1f 0%, #0a0a0a 80%),
+      repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 8px);
+  }
+  .s-features .feat .pic .tag { position: absolute; left: 8px; top: 8px; background: var(--accent); color: var(--ink); font-family: "JetBrains Mono", monospace; font-size: 24px; padding: 4px 10px; letter-spacing: .08em; }
+  .s-features .feat h3 { font-size: 30px; font-weight: 700; text-transform: uppercase; letter-spacing: -.005em; }
+  .s-features .feat p  { font-size: 24px; line-height: 1.4; }
+
+  /* --- slide 5: MARKET PENETRATION (chart) ------------------------- */
+  .s-chart .pane-l { grid-column: 1 / span 5; grid-row: 1 / span 8; background: var(--ink); color: var(--paper); padding: 36px 32px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+  .s-chart .pane-l h2 { font-size: 84px; font-weight: 700; text-transform: uppercase; letter-spacing: -.015em; line-height: .95; }
+  .s-chart .pane-l h2 em { font-style: normal; color: var(--accent); }
+  .s-chart .pane-l p  { font-size: 22px; line-height: 1.45; max-width: 32ch; opacity: .9; }
+  .s-chart .pane-l .yearlabel { font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: .08em; opacity: .7; }
+  .s-chart .pane-r { grid-column: 6 / span 7; grid-row: 1 / span 8; background: var(--paper); padding: 36px 32px; position: relative; display: flex; flex-direction: column; }
+  .s-chart .legend { display: flex; gap: 28px; margin-bottom: 18px; }
+  .s-chart .legend .li { display: flex; align-items: center; gap: 8px; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  .s-chart .legend .li i { width: 18px; height: 12px; background: var(--ink); display: inline-block; }
+  .s-chart .legend .li.b i { background: var(--accent); border: 1.5px solid var(--ink); }
+  .s-chart .bars { flex: 1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; align-items: end; padding: 16px 0 28px 0; border-bottom: 2px solid var(--ink); }
+  .s-chart .bar  { display: flex; flex-direction: column; gap: 4px; align-items: stretch; height: 100%; justify-content: flex-end; }
+  .s-chart .bar .a { background: var(--ink); }
+  .s-chart .bar .b { background: var(--accent); border: 1.5px solid var(--ink); }
+  .s-chart .xaxis{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; padding-top: 8px; }
+  .s-chart .xaxis span { font-family: "JetBrains Mono", monospace; font-size: 14px; text-align: center; letter-spacing: .08em; }
+
+  /* --- slide 6: SECTION DIVIDER ------------------------------------ */
+  .s-section { background: var(--ink); color: var(--paper); }
+  .s-section .frame { gap: 12px; }
+  .s-section .pane-num { grid-column: 1 / span 4; grid-row: 1 / span 8; background: var(--accent); color: var(--ink); padding: 36px 32px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+  .s-section .pane-num .n { font-size: 320px; font-weight: 700; line-height: .85; letter-spacing: -.05em; }
+  .s-section .pane-num .lab { font-family: "JetBrains Mono", monospace; font-size: 18px; letter-spacing: .12em; text-transform: uppercase; }
+  .s-section .pane-title { grid-column: 5 / span 8; grid-row: 1 / span 8; background: var(--ink); color: var(--paper); padding: 36px 32px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+  .s-section .pane-title h2 { font-size: 132px; font-weight: 700; text-transform: uppercase; letter-spacing: -.02em; line-height: .9; }
+  .s-section .pane-title h2 mark { background: var(--accent); color: var(--ink); padding: 0 8px; }
+  .s-section .pane-title p { font-size: 24px; line-height: 1.45; max-width: 48ch; opacity: .85; }
+
+  /* --- slide 7: QUOTE ---------------------------------------------- */
+  .s-quote .photo { grid-column: 1 / span 5; grid-row: 1 / span 8; background:#111; position: relative; overflow: hidden; }
+  .s-quote .photo .ph { position: absolute; inset: 0;
+    background:
+      radial-gradient(70% 80% at 50% 35%, #2a2a2a 0%, #0a0a0a 80%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 2px, transparent 2px 8px);
+  }
+  .s-quote .photo .tag { position: absolute; left: 16px; bottom: 16px; font-family: "JetBrains Mono", monospace; font-size: 13px; color: rgba(255,255,255,.55); letter-spacing: .12em; }
+  /* Quote — more breathing room around the headline, smaller decorative
+     mark so the actual quote leads, looser line-height for legibility. */
+  .s-quote .copy  { grid-column: 6 / span 7; grid-row: 1 / span 5; background: var(--paper); padding: 48px 52px; display: flex; flex-direction: column; justify-content: center; gap: 28px; }
+  .s-quote .copy .qmark { font-size: 96px; line-height: .8; font-weight: 700; color: var(--accent); -webkit-text-stroke: 2px var(--ink); }
+  .s-quote .copy blockquote { font-size: 38px; font-weight: 500; line-height: 1.28; letter-spacing: -.01em; margin: 0; }
+  .s-quote .attr  { grid-column: 6 / span 4; grid-row: 6 / span 3; background: var(--accent); padding: 36px 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+  .s-quote .attr .who { font-size: 30px; font-weight: 700; text-transform: uppercase; letter-spacing: -.005em; }
+  .s-quote .attr .role { font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  .s-quote .mark  { grid-column: 10 / span 3; grid-row: 6 / span 3; background: var(--ink); color: var(--paper); padding: 28px 32px; display: flex; align-items: center; justify-content: center; }
+  .s-quote .mark .blockmark { width: 96px; height: 96px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; }
+  .s-quote .mark .blockmark span { background: var(--accent); }
+  .s-quote .mark .blockmark span:nth-child(2) { background: transparent; }
+  .s-quote .mark .blockmark span:nth-child(3) { background: transparent; }
+
+  /* --- slide 8: NEXT STEPS ----------------------------------------- */
+  .s-cta .head    { grid-column: 1 / span 8; grid-row: 1 / span 3; background: var(--accent); padding: 36px 32px; display: flex; flex-direction: column; justify-content: space-between; }
+  .s-cta .head h2 { font-size: 124px; font-weight: 700; text-transform: uppercase; letter-spacing: -.02em; line-height: .9; }
+  .s-cta .head .lab { font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
+  .s-cta .qr      { grid-column: 9 / span 4; grid-row: 1 / span 3; background: var(--ink); display: flex; align-items: center; justify-content: center; }
+  .s-cta .qr svg  { width: 60%; height: auto; }
+  .s-cta .step    { padding: 28px 32px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; background: var(--paper); }
+  .s-cta .step.a  { grid-column: 1 / span 4; grid-row: 4 / span 5; }
+  .s-cta .step.b  { grid-column: 5 / span 4; grid-row: 4 / span 5; }
+  .s-cta .step.c  { grid-column: 9 / span 4; grid-row: 4 / span 5; background: var(--ink); color: var(--paper); }
+  .s-cta .step .num { font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: .08em; }
+  .s-cta .step h3 { font-size: 44px; font-weight: 700; text-transform: uppercase; letter-spacing: -.01em; line-height: 1; }
+  .s-cta .step p  { font-size: 20px; line-height: 1.45; }
+  .s-cta .step.c .arrow svg path { stroke: var(--accent); }
+
+  /* --- CONSULT (text-dense) ----------------------------------------- */
+  /* Findings · Detail (action-title + 3 cols) — content vertically
+     distributed across each column so the colored boxes feel populated.
+     Typography lifted a notch + an extra line per column for density. */
+  .s-consult .frame { gap: 16px; }
+  .s-consult .head    { grid-column: 1 / span 12; grid-row: 1 / span 1; padding: 30px 36px; background: var(--ink); color: var(--paper); display: flex; align-items: center; gap: 32px; }
+  .s-consult .head .tag { font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: .12em; text-transform: uppercase; opacity: .7; flex-shrink: 0; border-right: 1px solid rgba(245,244,239,.25); padding-right: 32px; }
+  .s-consult .head h2 { font-weight: 700; font-size: 28px; line-height: 1.25; text-transform: uppercase; letter-spacing: -.005em; }
+  .s-consult .head h2 mark { background: var(--accent); color: var(--ink); padding: 0 6px; }
+  .s-consult .col     { grid-row: 2 / span 7; padding: 40px 40px; background: var(--paper); display: flex; flex-direction: column; gap: 24px; }
+  .s-consult .col.a   { grid-column: 1 / span 4; }
+  .s-consult .col.b   { grid-column: 5 / span 4; background: var(--accent); }
+  .s-consult .col.c   { grid-column: 9 / span 4; }
+  .s-consult .col h3  { font-size: 24px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid var(--ink); padding-bottom: 14px; margin-bottom: 0; flex-shrink: 0; }
+  /* col-body: a flex-grow wrapper around the variable middle content.
+     justify-content: space-between distributes whatever is inside across
+     the full available height so paragraphs / lists / meta numbers
+     spread out instead of bunching at the top. */
+  .s-consult .col-body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; }
+  .s-consult .col .meta { font-size: 32px; font-weight: 700; line-height: 1.1; letter-spacing: -.005em; }
+  .s-consult .col p   { font-size: 21px; line-height: 1.55; }
+  .s-consult .col ul  { margin: 0; padding-left: 22px; font-size: 21px; line-height: 1.55; display: flex; flex-direction: column; gap: 14px; }
+  .s-consult .col ul li strong { font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+  .s-consult .col .src { font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; opacity: .65; padding-top: 16px; border-top: 1px dashed rgba(10,10,10,.25); flex-shrink: 0; }
+
+  /* --- CHART -------------------------------------------------------- */
+  .s-chart2 .pane-l { grid-column: 1 / span 5; grid-row: 1 / span 8; background: var(--accent); padding: 32px 28px; display: flex; flex-direction: column; justify-content: space-between; }
+  .s-chart2 .pane-l .label { font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; }
+  .s-chart2 .pane-l h2 { font-weight: 700; font-size: 76px; line-height: .95; text-transform: uppercase; letter-spacing: -.015em; }
+  .s-chart2 .pane-l p { font-size: 20px; line-height: 1.45; max-width: 32ch; }
+  .s-chart2 .pane-l .legend { display: flex; flex-direction: column; gap: 10px; }
+  .s-chart2 .pane-l .legend .li { display: flex; align-items: center; gap: 12px; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  .s-chart2 .pane-l .legend .li i { width: 24px; height: 4px; background: var(--ink); }
+  .s-chart2 .pane-r { grid-column: 6 / span 7; grid-row: 1 / span 8; background: var(--paper); padding: 32px 28px 28px 80px; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  .s-chart2 .pane-r .yhead { font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; opacity: .7; margin-bottom: 8px; }
+  .s-chart2 .plot { flex: 1; min-height: 0; position: relative; border-left: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+  .s-chart2 .plot .gline { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(10,10,10,.18); }
+  .s-chart2 .plot .yticks { position: absolute; left: -56px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: space-between; font-family: "JetBrains Mono", monospace; font-size: 14px; }
+  .s-chart2 .plot svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+  .s-chart2 .pane-r .xticks { display: flex; justify-content: space-between; padding-top: 10px; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .08em; }
+
+  /* --- PROCESS DIAGRAM --------------------------------------------- */
+  /* Process — head h2 dropped from 76 to 56 so the headline sits beside the
+     supporting line cleanly. Each node centers its content vertically and
+     uses larger typography so the column feels populated edge-to-edge. */
+  .s-process2 .head { grid-column: 1 / span 12; grid-row: 1 / span 2; padding: 36px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 48px; background: var(--paper); }
+  .s-process2 .head h2 { font-weight: 700; font-size: 56px; line-height: 1; text-transform: uppercase; letter-spacing: -.015em; }
+  .s-process2 .head .sub { font-family: "JetBrains Mono", monospace; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; max-width: 46ch; line-height: 1.55; opacity: .75; flex-shrink: 0; }
+  .s-process2 .node { padding: 32px 26px; background: var(--paper); display: flex; flex-direction: column; justify-content: center; gap: 18px; position: relative; }
+  .s-process2 .node.n1 { grid-column: 1 / span 2; grid-row: 3 / span 5; }
+  .s-process2 .node.n2 { grid-column: 3 / span 2; grid-row: 3 / span 5; background: var(--accent); }
+  .s-process2 .node.n3 { grid-column: 5 / span 2; grid-row: 3 / span 5; }
+  .s-process2 .node.n4 { grid-column: 7 / span 2; grid-row: 3 / span 5; background: var(--accent); }
+  .s-process2 .node.n5 { grid-column: 9 / span 2; grid-row: 3 / span 5; }
+  .s-process2 .node.out{ grid-column: 11 / span 2; grid-row: 3 / span 5; background: var(--ink); color: var(--paper); }
+  .s-process2 .node .n { font-family: "JetBrains Mono", monospace; font-size: 15px; letter-spacing: .12em; }
+  .s-process2 .node h3 { font-weight: 700; font-size: 30px; line-height: 1.05; text-transform: uppercase; letter-spacing: -.005em; }
+  .s-process2 .node p  { font-size: 17px; line-height: 1.55; }
+  .s-process2 .node .arr { position: absolute; right: -10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; z-index: 2; color: var(--ink); pointer-events: none; }
+  .s-process2 .node.out .arr { display: none; }
+  .s-process2 .timeline { grid-column: 1 / span 12; grid-row: 8 / span 1; background: var(--paper); padding: 16px 28px; display: grid; grid-template-columns: repeat(6, 1fr); align-items: center; font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; }
+  .s-process2 .timeline span { border-right: 1px dashed rgba(10,10,10,.25); padding-right: 12px; }
+  .s-process2 .timeline span:last-child { border-right: 0; }
+
+  /* --- COMPARISON MATRIX ------------------------------------------ */
+  .s-matrix2 .head { grid-column: 1 / span 12; grid-row: 1 / span 2; padding: 26px 32px; background: var(--paper); display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; }
+  .s-matrix2 .footrow { grid-column: 1 / span 12; grid-row: 8 / span 1; }
+  .s-matrix2 .head h2 { font-weight: 700; font-size: 76px; line-height: .95; text-transform: uppercase; letter-spacing: -.015em; }
+  .s-matrix2 .head .sub { font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; max-width: 46ch; line-height: 1.5; opacity: .75; flex-shrink: 0; }
+  .s-matrix2 .table { grid-column: 1 / span 12; grid-row: 3 / span 5; background: var(--paper); display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; grid-auto-rows: 1fr; }
+  .s-matrix2 .table .cell { padding: 18px 22px; border-bottom: 1.5px solid var(--ink); border-right: 1.5px solid var(--ink); display: flex; align-items: center; font-size: 24px; line-height: 1.35; }
+  .s-matrix2 .table .cell:nth-child(4n) { border-right: 0; }
+  .s-matrix2 .table .last { border-bottom: 0; }
+  .s-matrix2 .table .head-row { background: var(--ink); color: var(--paper); font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; }
+  .s-matrix2 .table .row-label { font-weight: 700; font-size: 22px; text-transform: uppercase; letter-spacing: -.005em; }
+  .s-matrix2 .pill { display: inline-block; padding: 6px 14px; font-family: "JetBrains Mono", monospace; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; font-weight: 500; line-height: 1.3; }
+  .s-matrix2 .pill.yes  { background: var(--accent); color: var(--ink); }
+  .s-matrix2 .pill.part { background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); }
+  .s-matrix2 .pill.no   { background: var(--ink); color: var(--paper); }
+  .s-matrix2 .pill.note { background: transparent; color: var(--ink); opacity: .7; padding-left: 0; }
+
+  /* Process slide compactness fixes */
+  .s-process2 .node h3 { font-weight: 700; font-size: 26px; line-height: 1; text-transform: uppercase; letter-spacing: -.005em; }
+  .s-process2 .node p  { font-size: 17px; line-height: 1.4; }
+  .s-process2 .timeline span { font-size: 14px; }
+  /* end fix */
+  /* Consult body sizing */
+  .s-consult .col p   { font-size: 18px; line-height: 1.45; }
+  .s-consult .col ul li { font-size: 18px; line-height: 1.5; margin-bottom: 6px; }
+  .s-system { background: var(--paper); }
+  .s-system .frame { gap: 16px; }
+  .s-system .head { grid-column: 1 / span 12; grid-row: 1 / span 1; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; background: transparent; }
+  .s-system .head h2 { font-size: 56px; font-weight: 700; text-transform: uppercase; letter-spacing: -.015em; }
+  .s-system .head .meta { font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .08em; }
+  .s-system .panel { background: #fff; border: 1.5px solid var(--ink); padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; }
+  .s-system .panel h4 { font-family: "JetBrains Mono", monospace; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; opacity: .65; margin-bottom: 4px; }
+  .s-system .panel p, .s-system .panel li { font-size: 16px; line-height: 1.5; }
+  .s-system .panel ul { margin: 0; padding-left: 18px; }
+  .s-system .pal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .s-system .pal .sw { aspect-ratio: 1.4 / 1; border: 1.5px solid var(--ink); display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; font-family: "JetBrains Mono", monospace; font-size: 11px; }
+  .s-system .pal .sw.b1 { background: var(--bg); }
+  .s-system .pal .sw.b2 { background: var(--paper); }
+  .s-system .pal .sw.b3 { background: var(--ink); color: var(--paper); }
+  .s-system .pal .sw.b4 { background: var(--accent); }
+  .s-system .type-row { display: flex; align-items: baseline; gap: 16px; padding: 6px 0; border-bottom: 1px dashed rgba(0,0,0,.15); }
+  .s-system .type-row:last-child { border-bottom: 0; }
+  .s-system .type-row .sample { font-weight: 700; text-transform: uppercase; letter-spacing: -.01em; }
+  .s-system .type-row .lbl    { font-family: "JetBrains Mono", monospace; font-size: 12px; opacity: .65; margin-left: auto; }
+
+  .s-system .p-pal   { grid-column: 1 / span 4; grid-row: 2 / span 4; }
+  .s-system .p-type  { grid-column: 5 / span 5; grid-row: 2 / span 4; }
+  .s-system .p-grid  { grid-column: 10 / span 3; grid-row: 2 / span 4; }
+  .s-system .p-rules { grid-column: 1 / span 7; grid-row: 6 / span 3; }
+  .s-system .p-dont  { grid-column: 8 / span 5; grid-row: 6 / span 3; }
+  .s-system .gridviz { aspect-ratio: 1 / 1; border: 1.5px solid var(--ink); display: grid; grid-template-columns: repeat(12, 1fr); }
+  .s-system .gridviz span { border-right: 1px dashed rgba(0,0,0,.18); }
+  .s-system .gridviz span:last-child { border-right: 0; }
+
+  /* ===========================================
+     EXTENSIONS — 依据 AGENTS.md §5 扩展缺失布局：
+     同一调色板（--bg/--ink/--paper/--accent）、同一字体栈、
+     同一 12×8 网格与装饰词汇（方块戳、mark 荧光笔、mono 标签）。
+     CJK 配对依据 design.md：Noto Sans SC 900 承担中文 display，
+     中文不收紧字距、不做大写变换、行高放宽。
+     =========================================== */
+  :root {
+    --font-d: "Space Grotesk", "Noto Sans SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-m: "JetBrains Mono", "Noto Sans SC", ui-monospace, monospace;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body, section.slide { font-family: var(--font-d); }
+
+  /* --- 面板内容骨架（演示 slide 已移除，统一 .card 内边距与纵向 flex） --- */
+  .card { padding: 26px 30px; display: flex; flex-direction: column; }
+
+  /* --- CJK 字号工具（weight 900 = 中文 display；字距 0；行高放宽） --- */
+  .kick { font-family: var(--font-m); font-size: 16px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75; }
+  .kick.lg { font-size: 20px; }
+  .h-hero { font-size: 118px; font-weight: 900; line-height: 1.08; letter-spacing: 0; }
+  .h-sec  { font-size: 76px;  font-weight: 900; line-height: 1.12; letter-spacing: 0; }
+  .h-slide{ font-size: 42px;  font-weight: 900; line-height: 1.15; letter-spacing: 0; }
+  .h-card { font-size: 32px;  font-weight: 900; line-height: 1.2;  letter-spacing: 0; }
+  .h-sub  { font-size: 24px;  font-weight: 700; line-height: 1.3; }
+  .body   { font-size: 21px;  font-weight: 400; line-height: 1.72; }
+  .body-sm{ font-size: 18px;  font-weight: 400; line-height: 1.66; }
+  .num-hero { font-weight: 700; font-size: 300px; line-height: 0.85; letter-spacing: -0.04em; }
+  .num-stat { font-weight: 700; font-size: 150px; line-height: 0.9;  letter-spacing: -0.03em; }
+  .num-stat-sm { font-weight: 700; font-size: 76px; line-height: 0.95; letter-spacing: -0.03em; }
+
+  /* --- 强调机制：mark = 荧光黄刷（全局化模板规则）；.sw-ink = 黄底面板上的反色刷 --- */
+  mark { background: var(--accent); color: var(--ink); padding: 0 6px; }
+  .sw-ink { background: var(--ink); color: var(--paper); padding: 0 8px; }
+  em { font-style: normal; }
+  b, strong { font-weight: 700; }
+
+  /* --- 装饰词汇：2×2 方块戳（与模板 corner-mark / blockmark 同族） --- */
+  .cmark { position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 4px; }
+  .cmark i { background: currentColor; }
+  .cmark i.o { opacity: 0.22; }
+  .blockmark { width: 56px; height: 56px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 5px; }
+  .blockmark i { background: currentColor; }
+  .blockmark i.o { opacity: 0.22; }
+  .pagenum.lemonbg { background: var(--accent); color: var(--ink); }
+
+  /* --- 标题条：一行高的面板，左标题右标签 --- */
+  .t-strip { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0 32px; }
+
+  /* --- 列表：方块符号（ink 面板上用柠檬黄） --- */
+  .list { list-style: none; }
+  .list li { position: relative; padding-left: 26px; margin-bottom: 12px; }
+  .list li::before { content: ''; position: absolute; left: 0; top: 0.58em; width: 12px; height: 12px; background: var(--ink); }
+  .card.ink .list li::before { background: var(--accent); }
+  .list li:last-child { margin-bottom: 0; }
+
+  /* --- 迷你条形图（对比用；黄条带 1.5px 墨边，同模板 chart series B） --- */
+  .bar-row { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+  .bar-row .bl { font-family: var(--font-m); font-size: 14px; letter-spacing: 0.08em; width: 92px; flex-shrink: 0; text-transform: uppercase; }
+  .bar { flex: 1; height: 26px; background: rgba(10,10,10,0.08); position: relative; }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink); display: block; }
+  .bar i.lm { background: var(--accent); border: 1.5px solid var(--ink); }
+  .bar-row .bv { font-family: var(--font-m); font-size: 15px; width: 74px; flex-shrink: 0; }
+
+  /* --- 流程条：步骤块 + 箭头（边框 1.5px 墨，与模板表格/药丸同规） --- */
+  .flow { display: flex; align-items: stretch; gap: 10px; }
+  .flow .step { flex: 1; background: var(--paper); border: 1.5px solid var(--ink); padding: 14px 14px; display: flex; flex-direction: column; justify-content: center; }
+  .flow .step.dk { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .flow .step.lm { background: var(--accent); color: var(--ink); border-color: var(--ink); }
+  .flow .arr { align-self: center; font-family: var(--font-m); font-size: 26px; font-weight: 700; }
+
+  /* --- 线框表格（同模板 s-matrix2 的 1.5px 墨线语法） --- */
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th { background: var(--ink); color: var(--paper); font-family: var(--font-m); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; text-align: left; padding: 10px 16px; }
+  .tbl td { padding: 13px 16px; border-bottom: 1.5px solid var(--ink); border-right: 1.5px solid var(--ink); font-size: 18px; line-height: 1.5; vertical-align: top; }
+  .tbl td:last-child { border-right: none; }
+  .tbl tr:last-child td { border-bottom: none; }
+
+  /* --- 架构分层堆栈 --- */
+  .layers { display: flex; flex-direction: column; gap: 8px; }
+  .layer { display: flex; align-items: center; gap: 18px; background: var(--paper); border: 1.5px solid var(--ink); padding: 12px 20px; }
+  .layer .ln { font-family: var(--font-m); font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; background: var(--ink); color: var(--paper); padding: 6px 12px; flex-shrink: 0; min-width: 148px; text-align: center; }
+  .layer.lm { background: var(--accent); }
+  .layer .ld { font-size: 17px; line-height: 1.5; }
+
+  /* --- SVG 队形拓扑图 / 金字塔 --- */
+  .diag { width: 100%; height: 92px; flex-shrink: 0; }
+  .diag rect, .diag circle { fill: var(--paper); stroke: var(--ink); stroke-width: 2; }
+  .diag rect.core { fill: var(--accent); }
+  .diag line, .diag path { stroke: var(--ink); stroke-width: 2; fill: none; }
+  .diag path.dash { stroke-dasharray: 5 5; }
+  .pyr text { font-family: var(--font-m); font-size: 15px; letter-spacing: 0.06em; }
+
+  /* --- 入场动画：跟随 deck-stage 的 data-deck-active 触发 --- */
+  .rv { opacity: 0; transform: translateY(28px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); transition-delay: var(--d, 0s); }
+  .slide[data-deck-active] .rv { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+  }
+
+  /* ---  Deck 外框：顶部进度条 --- */
+  .deck-progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); width: 0; z-index: 1200; transition: width 0.35s var(--ease); }
+
+  /* --- 内联编辑（E 键 / 左上角热区；JS 控制显隐，不用 CSS ~ 选择器） --- */
+  .edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+  .edit-toggle { position: fixed; top: 16px; left: 16px; z-index: 10001; width: 48px; height: 48px; border: none; background: var(--ink); color: var(--accent); font-size: 20px; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+  .edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+  body.editing .slide [contenteditable="true"] { outline: 2px dashed rgba(230,255,61,0.9); outline-offset: 2px; cursor: text; }
+  .edit-hint { position: fixed; top: 16px; left: 76px; z-index: 10001; background: var(--ink); color: var(--paper); font-family: var(--font-m); font-size: 13px; letter-spacing: 0.06em; padding: 12px 16px; display: none; }
+  body.editing .edit-hint { display: block; }
+  /* --- 截图面板（流程走查）：墨底 + 1.5px 墨边框，同模板 photo 区域语义 --- */
+  .shot { background: #111; border: 1.5px solid var(--ink); flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .shot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .shot-cap { padding-top: 14px; flex-shrink: 0; }
+  .shot.light { background: #ffffff; }
+  .jump { cursor: pointer; }
+  .jump:hover { outline: 3px solid var(--ink); outline-offset: -3px; }
+  .card.ink.jump:hover { outline-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- === Deck 外框（非 slide 内容） === -->
+<div class="deck-progress" id="deckProgress"></div>
+<div class="edit-hotzone" id="editHotzone" title="编辑模式 (E)"></div>
+<button class="edit-toggle" id="editToggle" title="编辑模式 (E)">✏️</button>
+<div class="edit-hint">编辑模式：点击文字直接修改 · Ctrl/⌘+S 导出 HTML · 再按 E 退出</div>
+
+<deck-stage width="1920" height="1080">
+<!-- ===========================================
+     SLIDE 01 · 总封面：双主题
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card rv" style="grid-column:1/span 7; grid-row:1/span 2; --d:.05s; justify-content:space-between;">
+            <div class="kick">Tech Share · 内部技术分享 · 2026.07</div>
+            <div style="font-weight:700; font-size:44px; line-height:1.05; letter-spacing:-0.01em; text-transform:uppercase;">Multi-Agent<br>Collaboration</div>
+            <div class="cmark"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+        </div>
+        <div class="card lemon rv" style="grid-column:8/span 5; grid-row:1/span 3; --d:.15s; justify-content:space-between;">
+            <div class="kick">主题 / Topics</div>
+            <div class="num-stat" style="font-size:190px;">02</div>
+            <div class="h-sub">原理篇 + 实践验证篇<br>从组队机制到项目管理体系</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 7; grid-row:3/span 4; --d:.25s; justify-content:flex-end;">
+            <div class="kick lg" style="margin-bottom:28px;">原理 · 机制 · 体系 · 验证</div>
+            <h1 class="h-hero" style="font-size:102px;">多智能体协作原理<br>与项目管理实践验证</h1>
+        </div>
+        <div class="card ink rv" style="grid-column:8/span 5; grid-row:4/span 3; --d:.35s; justify-content:space-between;">
+            <div class="kick">分享人 / Speakers</div>
+            <div class="h-sec" style="font-size:56px;">丁群 · 姜明</div>
+            <div class="body-sm" style="opacity:.85;">载体：AgentHub 群聊式工作空间 · AI 运行中心（AI Runtime Center）</div>
+            <div class="cmark" style="color:var(--accent);"><i></i><i></i><i></i><i class="o"></i></div>
+        </div>
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.45s;">
+            <div class="kick">主题一 · 多智能体协同原理 × AgentHub 项目实践</div>
+            <div class="kick">主题二 · 让 AI Agent 围绕项目管理体系运行</div>
+        </div>
+    </div>
+    <div class="pagenum">01 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 02 · 主题选择（可点击跳转）
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">选择分享主题</h2>
+            <div class="kick">两个主题 · 点击卡片直接进入</div>
+        </div>
+        <div class="card jump rv" role="button" tabindex="0" onclick="document.querySelector('deck-stage').goTo(2)" style="grid-column:1/span 6; grid-row:2/span 6; --d:.12s; padding:40px 44px; justify-content:space-between;">
+            <div>
+                <div class="kick">Topic 01 · P3 – P32</div>
+                <h2 class="h-sec" style="margin:22px 0 24px;">多智能体协同原理<br>× AgentHub 项目实践</h2>
+                <div class="body">单个 Agent 的局限 → 六种组队队形 → 五个关键机制 → 工程体系 → AgentHub「群聊式」协作工作空间实践</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="kick lg" style="opacity:1;">30 页 · 原理 + 实践</div>
+                <div style="font-family:var(--font-m); font-size:40px; font-weight:700;">→</div>
+            </div>
+            <div class="cmark"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+        </div>
+        <div class="card ink jump rv" role="button" tabindex="0" onclick="document.querySelector('deck-stage').goTo(32)" style="grid-column:7/span 6; grid-row:2/span 6; --d:.2s; padding:40px 44px; justify-content:space-between;">
+            <div>
+                <div class="kick" style="color:var(--accent); opacity:1;">Topic 02 · P33 – P48</div>
+                <h2 class="h-sec" style="margin:22px 0 24px;">让 AI Agent<br>围绕项目管理体系运行</h2>
+                <div class="body">项目资产驱动 · AI 进入流程的四件事 · 一个需求的生命周期 · 五层架构与双路径 · 17 类迭代文档已落地</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="kick lg" style="opacity:1;">16 页 · 体系 + 验证</div>
+                <div style="font-family:var(--font-m); font-size:40px; font-weight:700; color:var(--accent);">→</div>
+            </div>
+            <div class="cmark" style="color:var(--accent);"><i></i><i></i><i></i><i class="o"></i></div>
+        </div>
+        <div class="card lemon t-strip rv" style="grid-column:1/span 12; grid-row:8; --d:.28s;">
+            <div class="kick" style="opacity:1;">顺序播放</div>
+            <div class="h-sub">主题一结束后，往后翻页即进入主题二</div>
+        </div>
+    </div>
+    <div class="pagenum">02 / 48</div>
+</section>
+
+
+<!-- ===========================================
+     SLIDE 01 · COVER
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card rv" style="grid-column:1/span 7; grid-row:1/span 2; --d:.05s; justify-content:space-between;">
+            <div class="kick">主题一 · TOPIC 01 · 内部技术分享 · 2026.07.18</div>
+            <div style="font-weight:700; font-size:44px; line-height:1.05; letter-spacing:-0.01em; text-transform:uppercase;">Multi-Agent<br>Orchestration</div>
+            <div class="cmark"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+        </div>
+        <div class="card lemon rv" style="grid-column:8/span 5; grid-row:1/span 3; --d:.15s; justify-content:space-between;">
+            <div class="kick">篇章 / Parts</div>
+            <div class="num-stat" style="font-size:190px;">02</div>
+            <div class="h-sub">上篇 · 协同原理<br>下篇 · AgentHub 项目实践</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 7; grid-row:3/span 4; --d:.25s; justify-content:flex-end;">
+            <div class="kick lg" style="margin-bottom:28px;">隔离 · 通信 · 状态 · 调度 · 成本</div>
+            <h1 class="h-hero">多智能体<br>协同原理</h1>
+            <div class="h-sub" style="margin-top:26px;">暨 AgentHub 项目实践</div>
+        </div>
+        <div class="card ink rv" style="grid-column:8/span 5; grid-row:4/span 3; --d:.35s; justify-content:space-between;">
+            <div class="kick">核心命题 / Thesis</div>
+            <div style="font-size:30px; line-height:1.65;">多智能体的本质是<br><mark>拿 Token 换性能</mark> ——<br>所以只打值得打的仗。</div>
+            <div class="cmark" style="color:var(--accent);"><i></i><i></i><i></i><i class="o"></i></div>
+        </div>
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.45s;">
+            <div class="kick">Supervisor · Hierarchical · Pipeline · Peer-to-Peer · Swarm · Dynamic</div>
+            <div class="kick">素材：知识库 20+ 篇笔记 × Anthropic 官方案例 × AgentHub 项目实践</div>
+        </div>
+    </div>
+    <div class="pagenum">03 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 02 · 目录 CONTENTS
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card ink rv" style="grid-column:1/span 4; grid-row:1/span 8; --d:.05s; justify-content:space-between;">
+            <div class="blockmark" style="color:var(--accent);"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+            <div>
+                <div class="h-hero" style="font-size:96px;">目录</div>
+                <div class="kick lg" style="margin-top:14px;">Contents</div>
+            </div>
+            <div class="body-sm" style="opacity:.85;">上下两篇：上篇讲清多智能体协同的通用原理 —— 从局限、队形、机制到工程体系与落地；下篇落到 AgentHub 项目实践 —— 用结构化会话，取代零散终端记录。</div>
+        </div>
+        <div class="card lemon rv" style="grid-column:5/span 8; grid-row:1; --d:.1s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">上篇</span><span class="h-card">PART 01 · 多智能体协同原理</span><span class="kick" style="margin-left:auto;">Principles</span>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:2; --d:.16s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">01</span><span class="h-card">先从一个 Agent 聊起</span><span class="kick" style="margin-left:auto;">三大局限 · 成本门槛</span>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:3; --d:.22s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">02</span><span class="h-card">组队与配合</span><span class="kick" style="margin-left:auto;">六种队形 · 五个关键机制</span>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:4; --d:.28s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">03</span><span class="h-card">从「能跑」到「敢用」</span><span class="kick" style="margin-left:auto;">约束 · 评测 · 规模化</span>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:5; --d:.34s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">04</span><span class="h-card">人与行业</span><span class="kick" style="margin-left:auto;">人和制度 · 真实案例 · 落地建议</span>
+        </div>
+        <div class="card lemon rv" style="grid-column:5/span 8; grid-row:6; --d:.4s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">下篇</span><span class="h-card">PART 02 · AgentHub 项目实践</span><span class="kick" style="margin-left:auto;">Practice</span>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:7; --d:.46s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">05</span><span class="h-card">为什么做 · 怎么做</span><span class="kick" style="margin-left:auto;">四类痛点 · 设计思路 · 五条措施</span>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:8; --d:.52s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">06</span><span class="h-card">做成什么样</span><span class="kick" style="margin-left:auto;">流程走查 · 目标成效 · 推广场景</span>
+        </div>
+    </div>
+    <div class="pagenum">04 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 03 · SECTION 01 DIVIDER
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card lemon rv" style="grid-column:1/span 5; grid-row:1/span 8; --d:.05s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick lg">Section</div>
+            <div class="num-hero">01</div>
+            <div class="kick lg">Why one is not enough</div>
+        </div>
+        <div class="card ink rv" style="grid-column:6/span 7; grid-row:1/span 5; --d:.15s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick">第一节</div>
+            <h2 class="h-sec">先从一个<br>Agent 聊起</h2>
+            <div class="body" style="opacity:.9;">单个 Agent 干边界清晰的活，已经相当顺手。<br>但任务一复杂，三个毛病就暴露了。</div>
+        </div>
+        <div class="card rv" style="grid-column:6/span 7; grid-row:6/span 3; --d:.25s; padding:32px 44px; justify-content:center;">
+            <div class="flow">
+                <div class="step"><div class="kick">毛病一</div><div class="h-sub">上下文装不下</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="kick">毛病二</div><div class="h-sub">运动员兼裁判</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="kick">毛病三</div><div class="h-sub">只能串行</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">05 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 04 · 单 Agent 三大局限
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">单个 Agent 的三大局限</h2>
+            <div class="kick">01 · Why one is not enough</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 5; --d:.12s;">
+            <div class="kick">Limit-01</div>
+            <h3 class="h-card" style="margin:14px 0 18px;">上下文装不下</h3>
+            <p class="body-sm">多阶段任务里，对话历史越滚越长，模型开始「丢三落四」。</p>
+            <p class="body-sm" style="margin-top:12px;">阿里的典型例子：「金额字段统一 DECIMAL(22,6)」写在最开始的提示词里，跨过 <b>30 轮对话、5 个阶段</b>之后，模型就忘了。</p>
+            <p class="body-sm" style="margin-top:auto; opacity:.75;">不是模型变笨 —— 是注意力机制天然不擅长保持长程约束。</p>
+        </div>
+        <div class="card rv" style="grid-column:5/span 4; grid-row:2/span 5; --d:.2s;">
+            <div class="kick">Limit-02</div>
+            <h3 class="h-card" style="margin:14px 0 18px;">既当运动员<br>又当裁判</h3>
+            <p class="body-sm">让同一个 Agent 又写代码、又评审自己的代码，它很难发现问题。</p>
+            <p class="body-sm" style="margin-top:12px;">这不是态度问题，<mark>是认知偏差</mark>。</p>
+            <p class="body-sm" style="margin-top:auto; opacity:.75;">生产对策：写的人和评的人，必须是两个 Agent。</p>
+        </div>
+        <div class="card rv" style="grid-column:9/span 4; grid-row:2/span 5; --d:.28s;">
+            <div class="kick">Limit-03</div>
+            <h3 class="h-card" style="margin:14px 0 18px;">只能串行</h3>
+            <p class="body-sm">一个 Agent 一次只能干一件事。三个模块的活：</p>
+            <div style="margin-top:18px;">
+                <div class="bar-row"><span class="bl">串行</span><div class="bar"><i style="width:100%;"></i></div><span class="bv">10 min</span></div>
+                <div class="bar-row"><span class="bl">并行</span><div class="bar"><i class="lm" style="width:30%;"></i></div><span class="bv">3 min</span></div>
+            </div>
+            <p class="body-sm" style="margin-top:auto; opacity:.75;">串行 10 分钟的活，并行只要 3 分钟。</p>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.36s; padding:24px 32px; justify-content:center;">
+            <div class="kick" style="margin-bottom:10px;">案例 · 腾讯 Marvis（应用宝端侧助手）</div>
+            <div class="body-sm" style="font-size:19px;">文件知识库、操作系统理解、APP 操控 —— 三个不同领域的活全塞给一个模型：上下文爆炸、只能串行、调度复杂。所以一上来就选多智能体主从架构：<mark>不是炫技，是问题逼的</mark>。</div>
+        </div>
+    </div>
+    <div class="pagenum">06 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 05 · 冷水：多智能体不是免费的
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">先泼一盆冷水：多智能体不是免费的</h2>
+            <div class="kick">01 · The Cost</div>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 6; grid-row:2/span 4; --d:.12s; justify-content:space-between; padding:36px 40px;">
+            <div class="kick">Anthropic 官方披露 · 收益</div>
+            <div class="num-stat">+90<small style="font-size:80px;">%</small></div>
+            <div class="body-sm" style="opacity:.85;">多智能体研究系统（Claude 的 Research 功能）<br>相比单 Agent 的效果提升</div>
+        </div>
+        <div class="card lemon rv" style="grid-column:7/span 6; grid-row:2/span 4; --d:.2s; justify-content:space-between; padding:36px 40px;">
+            <div class="kick">代价 · Token 消耗</div>
+            <div class="num-stat">15<small style="font-size:80px;">×</small></div>
+            <div class="body-sm">Token 消耗约为普通对话的 15 倍 ——<br>效果与成本，必须放在同一本账上算</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 12; grid-row:6/span 3; --d:.28s; padding:32px 40px; justify-content:center;">
+            <div class="h-card" style="margin-bottom:16px;">业内共识：先把单 Agent 打磨到位，确认一个真不够用了，再谈多个</div>
+            <div class="flow">
+                <div class="step lm"><div class="kick">准入线</div><div class="h-sub">单 Agent 评测得分 ≥ 80%</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="kick">确认瓶颈</div><div class="h-sub">一个 Agent 真的不够用</div></div>
+                <div class="arr">→</div>
+                <div class="step dk"><div class="kick">反面教材</div><div class="h-sub">跳级堆 Agent = 成本翻倍、完成率反降</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">07 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 06 · SECTION 02 DIVIDER
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card ink rv" style="grid-column:1/span 5; grid-row:1/span 8; --d:.05s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick lg" style="color:var(--accent); opacity:1;">Section</div>
+            <div class="num-hero">02</div>
+            <div class="kick lg">Orchestration Patterns</div>
+        </div>
+        <div class="card lemon rv" style="grid-column:6/span 7; grid-row:1/span 5; --d:.15s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick">第二节</div>
+            <h2 class="h-sec">多个 Agent 怎么组队：<br>六种队形</h2>
+            <div class="body">一个 Agent 不够，自然想多派几个。<br>但「多派几个」怎么个派法 —— 拿人的团队打比方就清楚了。</div>
+        </div>
+        <div class="card rv" style="grid-column:6/span 7; grid-row:6/span 3; --d:.25s; padding:30px 44px; justify-content:center;">
+            <div class="kick" style="margin-bottom:14px;">六种队形 / Six Patterns</div>
+            <div class="body-sm" style="font-size:20px; line-height:1.9;">Supervisor 主从式 · Hierarchical 层级式 · Pipeline 流水线<br>Peer-to-Peer 圆桌讨论 · Swarm 工单转交 · Dynamic 动态路由</div>
+        </div>
+    </div>
+    <div class="pagenum invert">08 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 07 · 六种队形（含 SVG 拓扑图）
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">六种队形：组织方式决定协作上限</h2>
+            <div class="kick">02 · Patterns</div>
+        </div>
+
+        <!-- P1 Supervisor -->
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 3; --d:.1s; padding:20px 24px;">
+            <svg class="diag" viewBox="0 0 240 92">
+                <line x1="120" y1="26" x2="40" y2="66"/><line x1="120" y1="26" x2="120" y2="66"/><line x1="120" y1="26" x2="200" y2="66"/>
+                <rect class="core" x="104" y="6" width="32" height="20"/>
+                <rect x="24" y="66" width="32" height="20"/><rect x="104" y="66" width="32" height="20"/><rect x="184" y="66" width="32" height="20"/>
+            </svg>
+            <h3 class="h-sub" style="margin-top:8px;">Supervisor 主从式</h3>
+            <div class="kick" style="margin:4px 0 8px;">项目经理带队员</div>
+            <p class="body-sm" style="font-size:16px;">协调者拆任务、派活、收结果、汇总。<b>生产环境绝对主流</b>：Claude Code 子代理、LangGraph、CrewAI 全收敛于此。可控，但协调者耗 Token、易成单点瓶颈。</p>
+        </div>
+
+        <!-- P2 Hierarchical -->
+        <div class="card rv" style="grid-column:5/span 4; grid-row:2/span 3; --d:.16s; padding:20px 24px;">
+            <svg class="diag" viewBox="0 0 240 92">
+                <line x1="120" y1="18" x2="70" y2="46"/><line x1="120" y1="18" x2="170" y2="46"/>
+                <line x1="70" y1="58" x2="45" y2="72"/><line x1="70" y1="58" x2="95" y2="72"/><line x1="170" y1="58" x2="145" y2="72"/><line x1="170" y1="58" x2="195" y2="72"/>
+                <rect class="core" x="106" y="4" width="28" height="16"/>
+                <rect x="56" y="42" width="28" height="16"/><rect x="156" y="42" width="28" height="16"/>
+                <rect x="31" y="72" width="26" height="14"/><rect x="82" y="72" width="26" height="14"/><rect x="132" y="72" width="26" height="14"/><rect x="183" y="72" width="26" height="14"/>
+            </svg>
+            <h3 class="h-sub" style="margin-top:8px;">Hierarchical 层级式</h3>
+            <div class="kick" style="margin:4px 0 8px;">部门层级：总监管经理</div>
+            <p class="body-sm" style="font-size:16px;">团队大了就分层：总监管经理、经理管队员。适合<b>大规模跨领域协作</b>；代价是层间传递慢、每层管理者的指令都更难写。</p>
+        </div>
+
+        <!-- P3 Pipeline -->
+        <div class="card rv" style="grid-column:9/span 4; grid-row:2/span 3; --d:.22s; padding:20px 24px;">
+            <svg class="diag" viewBox="0 0 240 92">
+                <line x1="56" y1="46" x2="88" y2="46"/><path d="M84 40 L92 46 L84 52"/>
+                <line x1="136" y1="46" x2="168" y2="46"/><path d="M164 40 L172 46 L164 52"/>
+                <rect class="core" x="16" y="32" width="40" height="28"/><rect x="96" y="32" width="40" height="28"/><rect x="176" y="32" width="40" height="28"/>
+            </svg>
+            <h3 class="h-sub" style="margin-top:8px;">Pipeline 流水线</h3>
+            <div class="kick" style="margin:4px 0 8px;">提取 → 转换 → 校验</div>
+            <p class="body-sm" style="font-size:16px;">一道接一道，<b>最简单、最好排查问题</b>；但没法并行，上游堵了下游只能干等。</p>
+        </div>
+
+        <!-- P4 Peer-to-Peer -->
+        <div class="card rv" style="grid-column:1/span 4; grid-row:5/span 3; --d:.28s; padding:20px 24px;">
+            <svg class="diag" viewBox="0 0 240 92">
+                <line x1="60" y1="24" x2="180" y2="24"/><line x1="60" y1="68" x2="180" y2="68"/>
+                <line x1="60" y1="24" x2="60" y2="68"/><line x1="180" y1="24" x2="180" y2="68"/>
+                <line class="dash" x1="60" y1="24" x2="180" y2="68"/><line class="dash" x1="180" y1="24" x2="60" y2="68"/>
+                <rect class="core" x="46" y="14" width="28" height="20"/><rect x="166" y="14" width="28" height="20"/>
+                <rect x="46" y="58" width="28" height="20"/><rect x="166" y="58" width="28" height="20"/>
+            </svg>
+            <h3 class="h-sub" style="margin-top:8px;">Peer-to-Peer 圆桌讨论</h3>
+            <div class="kick" style="margin:4px 0 8px;">互相辩论、交叉评审</div>
+            <p class="body-sm" style="font-size:16px;">适合离线评审：方案比选、代码审查。毛病是聊个没完 —— 成本约单模型 <b>2.5×</b>，只有高风险决策才值得用。</p>
+        </div>
+
+        <!-- P5 Swarm / Handoff -->
+        <div class="card rv" style="grid-column:5/span 4; grid-row:5/span 3; --d:.34s; padding:20px 24px;">
+            <svg class="diag" viewBox="0 0 240 92">
+                <path d="M52 30 Q 90 10 128 30"/><path d="M122 22 L132 31 L120 34"/>
+                <path d="M168 62 Q 130 84 92 64"/><path d="M98 58 L88 63 L98 70"/>
+                <line class="dash" x1="184" y1="46" x2="56" y2="46"/>
+                <rect class="core" x="16" y="20" width="36" height="24"/><rect x="132" y="20" width="36" height="24"/><rect x="172" y="52" width="36" height="24"/><rect x="16" y="52" width="36" height="24" style="opacity:.35"/>
+            </svg>
+            <h3 class="h-sub" style="margin-top:8px;">Swarm 工单转交</h3>
+            <div class="kick" style="margin:4px 0 8px;">「处理不了，转给二线」</div>
+            <p class="body-sm" style="font-size:16px;">没有总调度，直接交接，比主从省一次中转、延迟低。最大的坑是<mark>循环转交</mark>：A→B→A 无限乒乓，<b>生产上必须设转交上限</b>。</p>
+        </div>
+
+        <!-- P6 Dynamic -->
+        <div class="card rv" style="grid-column:9/span 4; grid-row:5/span 3; --d:.4s; padding:20px 24px;">
+            <svg class="diag" viewBox="0 0 240 92">
+                <line x1="66" y1="46" x2="118" y2="18"/><line x1="66" y1="46" x2="118" y2="46"/><line x1="66" y1="46" x2="118" y2="74"/>
+                <rect class="core" x="18" y="30" width="44" height="32"/>
+                <rect x="122" y="8" width="34" height="20"/><rect x="122" y="36" width="50" height="20"/><rect x="122" y="64" width="28" height="20"/>
+            </svg>
+            <h3 class="h-sub" style="margin-top:8px;">Dynamic 动态路由</h3>
+            <div class="kick" style="margin:4px 0 8px;">来什么活，派什么人</div>
+            <p class="body-sm" style="font-size:16px;">路由角色先判断任务类型再分发。适合<b>请求类型差异大</b>的场景；代价是路由逻辑本身要持续维护。</p>
+        </div>
+
+        <div class="card ink t-strip rv" style="grid-column:1/span 12; grid-row:8; --d:.46s;">
+            <div class="kick" style="color:var(--accent); opacity:1;">毕马威 · 银行业调查</div>
+            <div class="body-sm">金融行业同样归纳为四种联动模式：层级式 · 流水线式 · 交接式 · 辩论式 —— 按业务场景选用</div>
+        </div>
+    </div>
+    <div class="pagenum">09 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 08 · 队形怎么选
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">队形怎么选：四条经验</h2>
+            <div class="kick">02 · 选型</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 3; grid-row:2/span 5; --d:.1s; justify-content:space-between;">
+            <div class="kick">Rule-01 · 资金场景</div>
+            <div style="font-family:var(--font-m); font-size:44px; font-weight:700;">→</div>
+            <div class="h-card">涉及资金操作的路径</div>
+            <p class="body-sm">老老实实 <b>Supervisor + 人工审批</b>，任何写操作都要有人点头。</p>
+        </div>
+        <div class="card rv" style="grid-column:4/span 3; grid-row:2/span 5; --d:.17s; justify-content:space-between;">
+            <div class="kick">Rule-02 · 客服场景</div>
+            <div style="font-family:var(--font-m); font-size:44px; font-weight:700;">→</div>
+            <div class="h-card">对话式客服</div>
+            <p class="body-sm">用<b>转交模式</b>，省中转、延迟低 —— 但务必给转交次数设上限。</p>
+        </div>
+        <div class="card rv" style="grid-column:7/span 3; grid-row:2/span 5; --d:.24s; justify-content:space-between;">
+            <div class="kick">Rule-03 · 批量场景</div>
+            <div style="font-family:var(--font-m); font-size:44px; font-weight:700;">→</div>
+            <div class="h-card">子任务独立、量大</div>
+            <p class="body-sm"><b>并行扇出（Fan-out）再汇总</b> —— 扇出的只给只读任务。</p>
+        </div>
+        <div class="card rv" style="grid-column:10/span 3; grid-row:2/span 5; --d:.31s; justify-content:space-between;">
+            <div class="kick">Rule-04 · 默认选项</div>
+            <div style="font-family:var(--font-m); font-size:44px; font-weight:700;">→</div>
+            <div class="h-card">拿不准的时候</div>
+            <p class="body-sm">从 <b>Supervisor 起步</b> —— 它是被验证最充分的模式。</p>
+        </div>
+        <div class="card lemon rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.38s; padding:26px 40px; justify-content:center;">
+            <div class="kick" style="margin-bottom:8px;">2026 业界共识</div>
+            <div class="h-card">别为 3 个子 Agent 的小问题，去建蜂群基础设施</div>
+        </div>
+    </div>
+    <div class="pagenum">10 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 09 · SECTION 03 DIVIDER
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card lemon rv" style="grid-column:1/span 5; grid-row:1/span 8; --d:.05s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick lg">Section</div>
+            <div class="num-hero">03</div>
+            <div class="kick lg">Five Mechanisms</div>
+        </div>
+        <div class="card ink rv" style="grid-column:6/span 7; grid-row:1/span 5; --d:.15s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick">第三节 · 原理的主体</div>
+            <h2 class="h-sec">配合的<br>五个关键机制</h2>
+            <div class="body" style="opacity:.9;">队形定了，真正的难点在配合。<br>五个机制，环环相扣。</div>
+        </div>
+        <div class="card rv" style="grid-column:6/span 2; grid-row:6/span 3; --d:.22s; justify-content:center;"><div class="kick">3.1</div><div class="h-card" style="margin-top:8px;">隔离</div><div class="kick" style="margin-top:6px;">Isolation</div></div>
+        <div class="card rv" style="grid-column:8/span 2; grid-row:6/span 3; --d:.28s; justify-content:center;"><div class="kick">3.2</div><div class="h-card" style="margin-top:8px;">通信</div><div class="kick" style="margin-top:6px;">Async + Msg</div></div>
+        <div class="card rv" style="grid-column:10/span 3; grid-row:6/span 3; --d:.34s; justify-content:center;">
+            <div style="display:flex; gap:26px;">
+                <div><div class="kick">3.3</div><div class="h-card" style="margin-top:8px;">状态</div><div class="kick" style="margin-top:6px;">State</div></div>
+                <div><div class="kick">3.4</div><div class="h-card" style="margin-top:8px;">调度</div><div class="kick" style="margin-top:6px;">Scheduling</div></div>
+                <div><div class="kick">3.5</div><div class="h-card" style="margin-top:8px;">成本</div><div class="kick" style="margin-top:6px;">Cost</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">11 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 10 · 机制一：隔离
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">3.1 隔离：各干各的，互不干扰</h2>
+            <div class="kick">Mechanism 1 / 5 · Isolation</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 7; grid-row:2/span 4; --d:.12s;">
+            <div class="kick">Claude Code · 按每个状态的语义，单独决定隔不隔离</div>
+            <ul class="list body-sm" style="margin-top:16px;">
+                <li><b>读文件的缓存</b> —— 克隆一份给子 Agent</li>
+                <li><b>写全局状态的权限</b> —— 直接收回：子 Agent 的写操作变成空调用</li>
+                <li><b>任务注册的通路</b> —— 保留</li>
+            </ul>
+            <div class="kick" style="margin-top:18px;">工具的三道准入门</div>
+            <div class="flow" style="margin-top:12px;">
+                <div class="step"><div class="body-sm">① 拉黑「能派新子代理」的工具，防递归派生失控</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="body-sm">② 按自定义 Agent 再加严</div></div>
+                <div class="arr">→</div>
+                <div class="step lm"><div class="body-sm">③ 白名单放行</div></div>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:8/span 5; grid-row:2/span 4; --d:.2s;">
+            <div class="kick">Anthropic · 更彻底的做法</div>
+            <h3 class="h-card" style="margin:14px 0 16px;">每个子 Agent 拿到<br>全新的空白上下文</h3>
+            <ul class="list body-sm">
+                <li>不带协调者的对话历史</li>
+                <li><b>故障隔离</b>：一个子 Agent 跑偏，不污染别人</li>
+                <li>也让<b>并行执行</b>成为可能</li>
+            </ul>
+        </div>
+        <div class="card lemon rv" style="grid-column:1/span 12; grid-row:6/span 3; --d:.28s; padding:36px 44px; justify-content:center;">
+            <div class="kick" style="margin-bottom:12px;">一句话总结</div>
+            <div class="h-sec" style="font-size:52px;">隔离的目的不是「隔得越远越好」，<br>而是让每个 Agent <span class="sw-ink">只看到它该看到的</span></div>
+        </div>
+    </div>
+    <div class="pagenum">12 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 11 · 机制二：通信
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">3.2 通信：异步 + 消息</h2>
+            <div class="kick">Mechanism 2 / 5 · Communication</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 5; grid-row:2/span 3; --d:.1s;">
+            <div class="kick">反例 · 为什么不用函数调用</div>
+            <p class="body-sm" style="margin-top:14px;">父 Agent 调子 Agent、等它返回 —— 同步调用会把父 Agent <mark>卡死几分钟</mark>，五个子 Agent 被迫串行。这条路走不通。</p>
+        </div>
+        <div class="card rv" style="grid-column:6/span 7; grid-row:2/span 3; --d:.16s;">
+            <div class="kick">实际做法 · 消息信箱 Mailbox</div>
+            <ul class="list body-sm" style="margin-top:14px;">
+                <li>父 Agent 把消息写进子 Agent 的<b>待收队列</b>就返回 —— 不等</li>
+                <li>子 Agent 每轮循环检查信箱，把消息当成一条新的用户输入来处理</li>
+                <li>子 Agent 已停止？发信自动<b>从磁盘恢复历史</b>，把它唤醒</li>
+                <li>干完活，拼一段<b>结构化 XML</b> 送回：任务编号 · 状态 · 结果摘要 · Token 用量 · 耗时</li>
+            </ul>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 7; grid-row:5/span 4; --d:.24s; justify-content:space-between;">
+            <div>
+                <div class="kick">为什么用结构化格式，而不是自然语言</div>
+                <div style="display:flex; align-items:baseline; gap:24px; margin:16px 0;">
+                    <span class="num-stat-sm">8%</span>
+                    <span style="font-family:var(--font-m); font-size:30px; color:var(--accent);">→</span>
+                    <span class="num-stat-sm" style="color:var(--accent);">1%</span>
+                    <span class="body-sm" style="opacity:.8;">Anthropic 实测：Agent 之间改用<br>JSON Schema 契约交接后的错误率</span>
+                </div>
+            </div>
+            <p class="body-sm" style="opacity:.9;">阿里走得更远：Agent 之间<b>干脆不直接对话</b>，全部通过预定义格式的结构化文件交换信息 —— 可追溯、可审计、可恢复。</p>
+        </div>
+        <div class="card rv" style="grid-column:8/span 5; grid-row:5/span 4; --d:.3s;">
+            <div class="kick">澄清两个常混的协议</div>
+            <div style="margin-top:16px; border:1.5px solid var(--ink); padding:16px 18px;">
+                <div class="h-sub">MCP</div>
+                <div class="body-sm" style="margin-top:6px;">Agent ↔ <b>工具</b>之间的连接<br>类比 USB 接口 —— 在下层接工具</div>
+            </div>
+            <div style="margin-top:12px; background:var(--ink); color:var(--paper); padding:16px 18px;">
+                <div class="h-sub" style="color:var(--accent);">A2A</div>
+                <div class="body-sm" style="margin-top:6px;">Agent ↔ <b>Agent</b> 之间的互操作<br>类比 HTTP —— 在上层做编排</div>
+            </div>
+            <p class="body-sm" style="margin-top:12px; opacity:.75;">一个在下层接工具，一个在上层做编排 —— 不是一回事。</p>
+        </div>
+    </div>
+    <div class="pagenum">13 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 12 · 机制三：状态
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">3.3 状态：谁来记，记在哪，怎么防错</h2>
+            <div class="kick">Mechanism 3 / 5 · State</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 4; --d:.12s;">
+            <div class="kick">最怕「两个人同时改同一本账」· 状态分三层管</div>
+            <table class="tbl" style="margin-top:14px;">
+                <tr><th>层</th><th>内容</th><th>规矩</th></tr>
+                <tr><td><b>全局状态</b></td><td>目标 · 计划 · 进度 · 错误摘要</td><td>大家都能看，<b>只有协调者能写</b></td></tr>
+                <tr><td><b>Agent 自身</b></td><td>草稿 · 工具缓存</td><td>各自隔离，互不可见</td></tr>
+                <tr><td><b>任务级</b></td><td>输入 · 输出 · 重试次数 · 幂等键</td><td>只能<b>追加</b>结构化记录，不能改历史</td></tr>
+            </table>
+            <p class="body-sm" style="margin-top:14px; opacity:.8;">干活的 Agent 每次只做一件事：追加一条「我观察到了什么」—— 账目永远不会乱，出了问题顺着记录查。</p>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 4; --d:.2s;">
+            <div class="kick">更进一步 · 事件溯源 Event Sourcing（借鉴 Temporal）</div>
+            <p class="body-sm" style="margin-top:14px;">不保存「当前状态」，<b>只保存事件序列</b>。</p>
+            <div class="flow" style="margin-top:16px;">
+                <div class="step"><div class="body-sm">Worker 在「调完大模型」和「执行工具」之间宕机</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="body-sm">新 Worker 接手，回放事件日志</div></div>
+                <div class="arr">→</div>
+                <div class="step lm"><div class="body-sm">发现大模型已调过、结果都在 —— 直接接着干</div></div>
+            </div>
+            <p class="body-sm" style="margin-top:16px;"><mark>不用重复调一次大模型</mark> —— 既省 Token，又天然有了断点续传和审计能力。</p>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 12; grid-row:6/span 3; --d:.28s; padding:30px 40px; justify-content:center;">
+            <div class="kick" style="margin-bottom:12px;">血泪教训 · 放开写权限 + 无人工审批 + 无幂等键 = 生产环境重复退款</div>
+            <div class="flow">
+                <div class="step dk" style="border-color:var(--accent);"><div class="h-sub" style="color:var(--accent);">并行扇出</div><div class="body-sm" style="margin-top:6px;">只给只读任务</div></div>
+                <div class="step dk" style="border-color:var(--accent);"><div class="h-sub" style="color:var(--accent);">写任务</div><div class="body-sm" style="margin-top:6px;">必须带幂等键 + 补偿机制（Saga）</div></div>
+                <div class="step dk" style="border-color:var(--accent);"><div class="h-sub" style="color:var(--accent);">关键环节</div><div class="body-sm" style="margin-top:6px;">强制人工确认</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">14 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 13 · 机制四：调度
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">3.4 调度：协调者到底该干什么</h2>
+            <div class="kick">Mechanism 4 / 5 · Scheduling</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 4; --d:.1s;">
+            <div class="kick">Claude Code Coordinator · 职责收到非常窄</div>
+            <div class="kick" style="margin-top:16px;">只做三件事</div>
+            <div class="h-card" style="margin-top:8px; line-height:1.5;">派 Worker<br>收结果<br>合成答案</div>
+            <div class="kick" style="margin-top:18px;">手里只有四个工具</div>
+            <div class="body-sm" style="margin-top:8px;">建队 · 解散 · 发消息 · 合成输出</div>
+        </div>
+        <div class="card ink rv" style="grid-column:5/span 4; grid-row:2/span 4; --d:.17s; justify-content:space-between;">
+            <div class="body" style="font-size:23px; line-height:1.6;">协调者必须<mark>「理解」</mark>而不能<mark>「转发」</mark> —— 如果只是转发，它就没有存在的价值。</div>
+            <div>
+                <div class="kick" style="color:var(--accent); opacity:1;">流水线四阶段</div>
+                <div class="body-sm" style="margin-top:8px; opacity:.9;">调研（Worker 并行）→ <b>合成（协调者亲自写规格，不外包）</b> → 实现（Worker）→ 验证（Worker）</div>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:9/span 4; grid-row:2/span 4; --d:.24s;">
+            <div class="kick">值得记住的细节</div>
+            <ul class="list body-sm" style="margin-top:14px; font-size:17px;">
+                <li><b>验证永远派新 Worker</b> —— 不能让干活的自己验自己</li>
+                <li>新任务与某 Worker 上下文高度相关 → 接着干；不相关 → 派新的</li>
+                <li><b>Worker 不许再派 Worker</b> —— 收回派生权限，扁平一层，防嵌套失控</li>
+                <li>派活时把<b>目标、输出格式、边界</b>写清楚 —— 指令模糊 = 重复劳动 + 盲区</li>
+            </ul>
+        </div>
+        <div class="card lemon rv" style="grid-column:1/span 12; grid-row:6/span 3; --d:.31s; padding:30px 40px; flex-direction:row; align-items:center; gap:44px;">
+            <div class="num-stat" style="font-size:130px; flex-shrink:0;">3–10</div>
+            <div>
+                <div class="h-card">子 Agent 数量别写死</div>
+                <div class="body-sm" style="margin-top:10px;">Anthropic 按问题复杂度动态派 3 到 10 个 Worker —— <b>成本降了 30%，质量还升了 15%</b>。</div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">15 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 14 · 机制五：成本
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">3.5 成本：跑得起，才算数</h2>
+            <div class="kick">Mechanism 5 / 5 · Cost</div>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 7; grid-row:2/span 3; --d:.1s;">
+            <div class="kick">多智能体的账，这么算</div>
+            <div style="font-family:var(--font-m); font-size:20px; line-height:2.0; margin-top:14px; letter-spacing:.02em;">
+                单 Agent 成本 = 每轮 Token × 轮数 × 单价<br>
+                多 Agent 成本 = Σ Worker Token + 协调者 Token × 轮数 + 合并开销
+            </div>
+            <div class="body-sm" style="margin-top:14px; opacity:.9;">上线前先过 ROI 门槛：<mark>完成率比单 Agent 高 5 个百分点以上、成本控制在 2 倍以内</mark>，才放行。</div>
+        </div>
+        <div class="card lemon rv" style="grid-column:8/span 5; grid-row:2/span 3; --d:.17s; flex-direction:row; align-items:center; gap:28px; padding:26px 32px;">
+            <div class="num-stat" style="font-size:120px; flex-shrink:0;">80%</div>
+            <div class="body-sm">影响多智能体系统性能的因素里，<b>Token 用量独占 80% 的解释力</b>，其余是工具调用次数和模型选择 —— 本质是拿 Token 换性能。</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 12; grid-row:5/span 4; --d:.24s; padding:28px 36px;">
+            <div class="kick" style="margin-bottom:16px;">怎么把成本压下来 · 业界三招</div>
+            <div style="display:flex; gap:12px; flex:1;">
+                <div style="flex:1.25; border:1.5px solid var(--ink); padding:18px 20px;">
+                    <div class="h-sub">① 缓存复用 · Fork 机制</div>
+                    <p class="body-sm" style="margin-top:10px;">Prompt 缓存只要请求前缀<b>逐字节相同</b>就命中，命中后价格是一折。Fork 的子 Agent 完整继承父上下文前缀 = 花十分之一的价钱复制一个「分身」。</p>
+                    <p class="body-sm" style="margin-top:10px; opacity:.75;">「原本因为成本不敢派的活，现在都敢派了 —— 这反过来扩大了系统的能力边界。」</p>
+                </div>
+                <div style="flex:1; border:1.5px solid var(--ink); padding:18px 20px;">
+                    <div class="h-sub">② 按任务定配置</div>
+                    <p class="body-sm" style="margin-top:10px;">规划用强模型、执行用便宜模型；简单任务少派人，复杂任务多派人。</p>
+                </div>
+                <div style="flex:1; border:1.5px solid var(--ink); padding:18px 20px;">
+                    <div class="h-sub">③ 允许部分失败</div>
+                    <p class="body-sm" style="margin-top:10px;">个别子 Agent 超时（约 2–3%），用已完成的结果继续合成、标注哪块缺了 —— 而不是整体重来。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">16 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 15 · SECTION 04 DIVIDER
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card ink rv" style="grid-column:1/span 5; grid-row:1/span 8; --d:.05s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick lg" style="color:var(--accent); opacity:1;">Section</div>
+            <div class="num-hero">04</div>
+            <div class="kick lg">Engineering System</div>
+        </div>
+        <div class="card rv" style="grid-column:6/span 7; grid-row:1/span 5; --d:.15s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick">第四节 · 工程体系</div>
+            <h2 class="h-sec">从「能跑」<br>到「敢用」</h2>
+            <div class="body" style="border-left:6px solid var(--accent); padding-left:22px;">「Agent 能跑，不代表能用；能用，不代表可信。中间隔的不是模型能力的差距，而是<mark>工程能力的差距</mark>。」<br><span class="kick" style="margin-top:8px; display:inline-block;">—— 阿里 Harness 实践</span></div>
+        </div>
+        <div class="card lemon rv" style="grid-column:6/span 7; grid-row:6/span 3; --d:.25s; padding:30px 44px; justify-content:center;">
+            <div class="kick" style="margin-bottom:12px;">三根支柱</div>
+            <div class="h-card" style="line-height:1.5;">约束 = 保险带 &nbsp;·&nbsp; 评测 = 持续可信 &nbsp;·&nbsp; 规模化 = 分布式系统</div>
+        </div>
+    </div>
+    <div class="pagenum invert">17 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 16 · 4.1 约束金字塔 + 门禁
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">4.1 约束不是束缚，是保险带</h2>
+            <div class="kick">阿里数据研发团队 · 约束金字塔</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 5; grid-row:2/span 7; --d:.12s; padding:28px 32px;">
+            <div class="kick" style="margin-bottom:16px;">约束分三层 · Constraint Pyramid</div>
+            <svg class="pyr" viewBox="0 0 400 470" style="width:100%; flex:1;">
+                <!-- top: red line zone (lemon = the loudest signal) -->
+                <polygon points="200,18 268,120 132,120" fill="#E6FF3D" stroke="#0A0A0A" stroke-width="2"/>
+                <polygon points="132,120 268,120 336,222 64,222" fill="#0A0A0A"/>
+                <polygon points="64,222 336,222 396,330 4,330" fill="#F5F4EF" stroke="#0A0A0A" stroke-width="2"/>
+                <text x="200" y="86" text-anchor="middle" fill="#0A0A0A" font-weight="700">超级红线</text>
+                <text x="200" y="180" text-anchor="middle" fill="#F5F4EF">错误记录本</text>
+                <text x="200" y="284" text-anchor="middle" fill="#0A0A0A">常规操作规范</text>
+                <!-- side annotations -->
+                <text x="10" y="360" fill="#0A0A0A" font-size="14">▲ 塔尖：禁跳过审查 · 禁编造数据 · 禁直出 SQL</text>
+                <text x="10" y="392" fill="#0A0A0A" font-size="14">▲ 中层：专家 Agent 的「踩坑记录」，</text>
+                <text x="34" y="420" fill="#0A0A0A" font-size="14">同一个错反复出现，就升级成红线</text>
+                <text x="10" y="452" fill="#0A0A0A" font-size="14">▲ 底层：日常操作规范</text>
+            </svg>
+        </div>
+        <div class="card ink rv" style="grid-column:6/span 7; grid-row:2/span 3; --d:.2s; justify-content:space-between; padding:30px 40px;">
+            <div class="body" style="font-size:22px; line-height:1.65;">「约束不是为了限制能力，而是为了让能力<mark>稳定地释放出来</mark>。约束越清楚，采样空间越聚焦，输出的方差就越小。」</div>
+            <div class="h-card" style="color:var(--accent);">更直白地说：可控，比聪明更重要。</div>
+        </div>
+        <div class="card rv" style="grid-column:6/span 7; grid-row:5/span 4; --d:.28s;">
+            <div class="kick" style="margin-bottom:14px;">配套 · 门禁制度 Gatekeeping</div>
+            <ul class="list body-sm">
+                <li>流程设 <b>8 个关键检查点</b>，强制检查项不给 Agent「我觉得不需要」的权力</li>
+                <li><b>写的人和评的人分开</b> —— 生产者与评审者必须是不同 Agent</li>
+                <li>1688 原则：<mark>往前走必须有人点头，打回来直接改不用再审批</mark> —— 正向流转必须审批，回退路径放开</li>
+                <li>每个环节最多返工 <b>3 次</b>，超时人工介入</li>
+            </ul>
+        </div>
+    </div>
+    <div class="pagenum">18 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 17 · 4.2 评测体系
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">4.2 评测：把「感觉还行」变成「持续可信」</h2>
+            <div class="kick">Evaluation</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 4; --d:.1s;">
+            <div class="kick">为什么「跑几条 case」远远不够</div>
+            <ul class="list body-sm" style="margin-top:14px;">
+                <li><b>非确定性</b>：同样的输入不一定同样输出</li>
+                <li><b>黑盒</b>：决策过程不透明</li>
+                <li><b>错误级联</b>：前面的小错被后面放大</li>
+                <li><b>假阳性</b>：最终答案看着对，执行路径其实已经偏了</li>
+            </ul>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:2/span 2; --d:.17s; justify-content:center;">
+            <div class="kick" style="margin-bottom:12px;">可复用的评测骨架</div>
+            <div class="flow">
+                <div class="step"><div class="body-sm" style="text-align:center;">跑用例</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="body-sm" style="text-align:center;">采集执行轨迹</div></div>
+                <div class="arr">→</div>
+                <div class="step lm"><div class="body-sm" style="text-align:center;">自动打分</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="body-sm" style="text-align:center;">生成报告</div></div>
+                <div class="arr">→</div>
+                <div class="step dk"><div class="body-sm" style="text-align:center;">根因归类</div></div>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:4/span 2; --d:.24s; justify-content:center;">
+            <div class="kick" style="margin-bottom:8px;">阿里 AgentScope 打分维度 · LLM 当裁判，同一 case 至少评 3 次取均值</div>
+            <div class="bar-row"><span class="bl">准确性 .35</span><div class="bar"><i class="lm" style="width:87.5%;"></i></div><span class="bv">0.35</span></div>
+            <div class="bar-row"><span class="bl">相关性 .30</span><div class="bar"><i style="width:75%;"></i></div><span class="bv">0.30</span></div>
+            <div class="bar-row"><span class="bl">完整性 .20</span><div class="bar"><i style="width:50%;"></i></div><span class="bv">0.20</span></div>
+            <div class="bar-row"><span class="bl">性能 .15</span><div class="bar"><i style="width:37.5%;"></i></div><span class="bv">0.15</span></div>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 4; grid-row:6/span 3; --d:.3s;">
+            <div class="kick" style="color:var(--accent); opacity:1;">三个坑要避开</div>
+            <ul class="list body-sm" style="margin-top:14px;">
+                <li>评测集<b>分层采样</b>，防止偏差</li>
+                <li>每月替换 <b>20%</b> 题目，防过拟合</li>
+                <li>裁判模型打分定期与<b>人工校准</b>，相关系数 ≥ 0.7</li>
+            </ul>
+        </div>
+        <div class="card lemon rv" style="grid-column:5/span 8; grid-row:6/span 3; --d:.36s; justify-content:space-between; padding:28px 36px;">
+            <div class="body" style="font-size:22px; line-height:1.6;">「我们有没有把最优秀、最高效的工程师放在评测体系里面，这是 AI 化能否成功的关键。」<span class="kick" style="margin-left:10px;">—— 快手</span></div>
+            <div class="body-sm">评测体系 = <b>质量判断的资产化</b>：它越成熟，AI 能承担的任务边界就越大。</div>
+        </div>
+    </div>
+    <div class="pagenum">19 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 18 · 4.3 规模化 = 分布式系统
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">4.3 规模上来之后：这其实是分布式系统</h2>
+            <div class="kick">几百上千个 Agent · 7×24 运行</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 7; --d:.12s;">
+            <div class="kick" style="margin-bottom:14px;">业界参考架构 · 五层</div>
+            <div class="layers" style="flex:1; justify-content:space-between;">
+                <div class="layer"><span class="ln">① 接入层</span><span class="ld">异步网关：收到请求先登记、立即返回，结果走推送通道 —— 避免长连接被拖垮</span></div>
+                <div class="layer"><span class="ln">② 通信编排层</span><span class="ld">分布式事件总线（Kafka / Redis Streams），发布订阅，靠单调递增序列号保证消息不乱序</span></div>
+                <div class="layer lm"><span class="ln">③ 执行层</span><span class="ld">无状态的 Agent 集群 —— 哪个节点空闲，哪个接活</span></div>
+                <div class="layer"><span class="ln">④ 状态层</span><span class="ld">Redis 管活跃状态，PostgreSQL 存事件日志</span></div>
+                <div class="layer"><span class="ln">⑤ 记忆层</span><span class="ld">短期记忆放 Redis；长期记忆（用户画像、审计日志）放向量库</span></div>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 3; --d:.2s;">
+            <div class="kick">很妙的机制 · 钝化与唤醒 Passivation</div>
+            <div class="flow" style="margin-top:14px;">
+                <div class="step"><div class="body-sm">Agent 等大模型返回的几十秒</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="body-sm">上下文转储到状态层，<b>释放算力</b></div></div>
+                <div class="arr">→</div>
+                <div class="step lm"><div class="body-sm">结果到达，任意空闲节点捞回上下文接着跑</div></div>
+            </div>
+            <p class="body-sm" style="margin-top:14px; opacity:.75;">操作系统换页、Akka 的 Actor 钝化 —— 都是同一个思想。</p>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:5/span 2; --d:.26s; justify-content:center;">
+            <div class="kick" style="margin-bottom:8px;">限流防雪崩</div>
+            <p class="body-sm">几百个 Agent 同时调同一个模型的 API-Key，触发限流就是雪崩。解法：给每个模型供应商建一个<b>「虚拟令牌池」</b>，下游返回限流信号时队列自动放慢投递，配合指数退避重试。</p>
+        </div>
+        <div class="card ink rv" style="grid-column:7/span 6; grid-row:7/span 2; --d:.32s; justify-content:center; padding:24px 36px;">
+            <div class="body" style="font-size:22px; line-height:1.6;">多智能体架构，本质上是<mark>把分布式系统的老坑重新踩一遍</mark> —— 幂等、补偿、事件溯源，全是熟面孔。</div>
+        </div>
+    </div>
+    <div class="pagenum">20 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 19 · 05 人和制度
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">05 · 协同的另一半：人和制度</h2>
+            <div class="kick">瓶颈常常不在 Agent，在人</div>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 4; grid-row:2/span 4; --d:.1s; justify-content:space-between;">
+            <div>
+                <div class="kick">快手量化分析</div>
+                <div class="num-stat" style="font-size:120px; margin-top:10px;">30<small style="font-size:56px;">%</small></div>
+                <div class="body-sm" style="opacity:.85;">工程师一天真正写代码的时间；其余 70% 花在需求对齐、沟通、交接上</div>
+            </div>
+            <div class="body-sm">AI 压缩编码时间、协作时间不变 → 收益被稀释：代码生成率 17% → 30%，交付周期几乎没变。<br><mark>个人提效 ≠ 组织提效</mark></div>
+        </div>
+        <div class="card rv" style="grid-column:5/span 4; grid-row:2/span 4; --d:.17s;">
+            <div class="kick">人机协作的四类摩擦</div>
+            <ul class="list body-sm" style="margin-top:14px; font-size:17px;">
+                <li>人给 AI 当<b>「搬运工」</b>，手动补上下文</li>
+                <li>AI 几分钟生成，人花<b>几小时验证</b></li>
+                <li>对能力边界没数：低估错过效率，高估导致返工</li>
+                <li>根子：<b>研发体系是围着人设计的</b> —— 信息按人的分工切块，AI 拿不到完整上下文；流程按人的节奏串行，并行优势发挥不出</li>
+            </ul>
+        </div>
+        <div class="card rv" style="grid-column:9/span 4; grid-row:2/span 4; --d:.24s;">
+            <div class="kick">人的角色整体上移</div>
+            <ul class="list body-sm" style="margin-top:14px; font-size:17px;">
+                <li>腾讯：人不是从系统里退出，而是从<b>处理任务</b>转向<b>建设任务系统</b></li>
+                <li>1688：价值从「SQL 写得多快」变成「能让多少经验被组织复用」；甚至给 AI 员工申请<b>真实工号</b>，专职做需求澄清</li>
+                <li>毕马威：银行员工转型<b>「智能体教练」</b>和<b>「高级裁判员」</b></li>
+            </ul>
+        </div>
+        <div class="card lemon rv" style="grid-column:1/span 12; grid-row:6/span 3; --d:.31s; padding:24px 32px; justify-content:center;">
+            <div class="kick" style="margin-bottom:10px;">金融行业的治理更硬 · 可解释、可追溯、可审计不是加分项，是准入门槛</div>
+            <div style="display:flex; gap:28px;">
+                <div style="flex:1;"><div class="h-sub">毕马威四大支柱</div><div class="body-sm" style="margin-top:6px;">组织重构（首席人工智能官）· 知识工程工业化 · 风险管控前置 · 协作改造；核心环节强制「人在环中」复核</div></div>
+                <div style="flex:1;"><div class="h-sub">浦发「三态管理」</div><div class="body-sm" style="margin-top:6px;">创设放开（低代码自己搭）→ 发布严管（分层审批）→ 运行持续监控 —— <span class="sw-ink">创新入口尽量低，风险出口尽量严</span></div></div>
+                <div style="flex:1;"><div class="h-sub">新加坡 MAS · SAFR 框架</div><div class="body-sm" style="margin-top:6px;">联合蚂蚁、Visa、Mastercard 发布：执行金融操作前系统完成核验、记录、溯源 —— 监管从「技术合规」走向「运行合规」</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">21 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 20 · 06 行业真实样子
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">06 · 行业里的真实样子</h2>
+            <div class="kick">Case Studies</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 3; --d:.1s;">
+            <div class="kick">阿里 · 1688 数研小队</div>
+            <p class="body-sm" style="margin-top:10px;">把 Agent 编成<b>「小队」</b>：一组 Agent + 协作指令 + 知识包，整体复制（fork）、独立迭代。知识工程：200 多个指标人工录入要数周 → Agent 扫描存量脚本自动抽取 + 人工审核，<b>只要几小时</b>。上线 6 周，跑了 18 支小队。</p>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 3; --d:.16s;">
+            <div class="kick">腾讯 · 凌晨 3 点的 AI 军团</div>
+            <p class="body-sm" style="margin-top:10px;">30 多个 Agent，覆盖四类场景：标准需求全链路 · Bug 修复闭环 · 平台自我迭代 · 历史问题池定期打捞。两点经验：每个环节的输出要定义<b>「准出字段」</b>，下游才能稳定消费；返工<b>定向到出错的环节</b>，而不是全链路重跑。</p>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:5/span 3; --d:.22s;">
+            <div class="kick">腾讯应用宝 · Marvis</div>
+            <p class="body-sm" style="margin-top:10px;">消费级产品的做法不同：主从架构藏在 <b>6 只拟人化「小马」</b>背后；端侧跑 35B 量化模型（省成本、保隐私、断网可用）；做完操作给用户一张带开关的卡片，不满意一键回退。上线第三天服务器被用户挤爆，传播全靠自来水。</p>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:5/span 3; --d:.28s;">
+            <div class="kick">银行业</div>
+            <p class="body-sm" style="margin-top:10px;">工行按岗位布「一岗一助手」，覆盖需求到运维六大岗位；浦发智能体总数超 2500，真正嵌进核心业务流程的约 200 个 —— <mark>上线易、入流难，8% 的入流率就是行业缩影</mark>。参考模板：对公信贷四智能体流水线（图谱核验 → 反欺诈 → 合规审查 → 贷后监控）。</p>
+        </div>
+        <div class="card ink t-strip rv" style="grid-column:1/span 12; grid-row:8; --d:.34s;">
+            <div class="kick" style="color:var(--accent); opacity:1;">流传很广的一句话</div>
+            <div class="body-sm">「凌晨三点还在交付的，不是某个 Agent，而是一套围绕目标持续运行的系统。」</div>
+        </div>
+    </div>
+    <div class="pagenum">22 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 21 · 07 落地建议：八条自检 + 失误点
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">07 · 落地建议：上线前的八条自检</h2>
+            <div class="kick">Checklist</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 7; grid-row:2/span 7; --d:.12s; padding:24px 30px; justify-content:space-between;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 22px; flex:1; align-content:space-between;">
+                <div style="display:flex; gap:14px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0;">01</span><span class="body-sm">单 Agent 评测到 80 分了吗？没到，先别谈协同</span></div>
+                <div style="display:flex; gap:14px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0;">02</span><span class="body-sm">任务价值撑得起几倍 Token 成本吗？先算 ROI</span></div>
+                <div style="display:flex; gap:14px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0;">03</span><span class="body-sm">队形选对了吗？拿不准从「主从 + 人工审批」起步</span></div>
+                <div style="display:flex; gap:14px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0;">04</span><span class="body-sm">状态规矩立了吗？全局单写、事件溯源、写操作带幂等键</span></div>
+                <div style="display:flex; gap:14px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0;">05</span><span class="body-sm">交接是结构化的吗？Agent 之间拒绝自由文本交接</span></div>
+                <div style="display:flex; gap:14px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0;">06</span><span class="body-sm">红线写进文件了吗？门禁取消「我觉得不需要」的权力</span></div>
+                <div style="display:flex; gap:14px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0;">07</span><span class="body-sm">评测闭环转起来了吗？自动打分、定位根因、沉淀修复动作</span></div>
+                <div style="display:flex; gap:14px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0;">08</span><span class="body-sm">出问题有兜底吗？部分失败可降级、人工可接管、全程留痕</span></div>
+            </div>
+        </div>
+        <div class="card ink rv" style="grid-column:8/span 5; grid-row:2/span 7; --d:.2s;">
+            <div class="kick" style="color:var(--accent); opacity:1;">最常见的失误点 · 提前避开</div>
+            <ul class="list body-sm" style="margin-top:16px;">
+                <li>不给重规划设上限 —— <b>无限循环烧 Token</b></li>
+                <li>写操作无审批、无幂等 —— <b>生产环境重复退款</b></li>
+                <li>转交条件模糊 —— Agent 之间<b>无限乒乓</b></li>
+                <li>允许 Worker 再派 Worker —— <b>嵌套失控</b></li>
+                <li>搞「全能上帝 Agent」—— <b>上下文爆炸</b></li>
+                <li>最普遍的一条：<b>能跑就上线</b> —— 重蹈入流率 8% 的覆辙</li>
+            </ul>
+        </div>
+    </div>
+    <div class="pagenum">23 / 48</div>
+</section>
+
+
+<!-- ===========================================
+     SLIDE 22 · 下篇 DIVIDER：AgentHub 项目实践
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card lemon rv" style="grid-column:1/span 5; grid-row:1/span 8; --d:.05s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick lg">Part</div>
+            <div class="num-hero">02</div>
+            <div class="kick lg">AgentHub in Practice</div>
+        </div>
+        <div class="card ink rv" style="grid-column:6/span 7; grid-row:1/span 5; --d:.15s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick">下篇 · 项目实践</div>
+            <h2 class="h-sec">AgentHub：「群聊式」<br>多 Agent 协作工作空间</h2>
+            <div class="body" style="opacity:.9;">用结构化会话，取代零散终端记录 ——<br>把上篇的协同原理，落成一种每天都在用的形态。</div>
+        </div>
+        <div class="card rv" style="grid-column:6/span 7; grid-row:6/span 3; --d:.25s; padding:30px 44px; justify-content:center;">
+            <div class="kick" style="margin-bottom:12px;">三个「当作」</div>
+            <div class="body-sm" style="font-size:20px; line-height:1.8;">把 Agent 当作联系人 · 把会话当作工作空间 · 把文件与产物当作共享上下文</div>
+        </div>
+    </div>
+    <div class="pagenum">24 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 23 · 背景与问题：四类痛点
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">背景：协作的「节点」变多了，载体还停留在日志</h2>
+            <div class="kick">Part 02 · 为什么做</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 3; grid-row:2/span 5; --d:.1s;">
+            <div class="kick">痛点 2.1</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">协作记录<br>碎片化</h3>
+            <p class="body-sm" style="font-size:17px;">每次调用 Agent、脚本或工具，产出的都是一段孤立日志：文本、代码、命令输出、错误信息混杂在一起。</p>
+            <p class="body-sm" style="font-size:17px; margin-top:10px;">任务链越长（需求澄清 → 设计 → 编码 → 联调 → 部署），碎片化<b>逐级放大</b>。</p>
+        </div>
+        <div class="card rv" style="grid-column:4/span 3; grid-row:2/span 5; --d:.16s;">
+            <div class="kick">痛点 2.2</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">上下文<br>难以复用</h3>
+            <p class="body-sm" style="font-size:17px;">文件、产物、决策依据分散在不同窗口、不同工具，甚至不同人的电脑里。</p>
+            <p class="body-sm" style="font-size:17px; margin-top:10px;">新成员接手、跨部门协作、几周后回头看自己做的事，都要花大量时间<mark>「考古」</mark>。</p>
+        </div>
+        <div class="card rv" style="grid-column:7/span 3; grid-row:2/span 5; --d:.22s;">
+            <div class="kick">痛点 2.3</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">审批与风险<br>控制缺位</h3>
+            <p class="body-sm" style="font-size:17px;">批量改文件、执行敏感命令、上线发布，往往是<b>「先做后知」</b>。</p>
+            <p class="body-sm" style="font-size:17px; margin-top:10px;">出错难以第一时间拦截，事后难以追溯责任归属 —— 质量与数据安全的双重隐患。</p>
+        </div>
+        <div class="card rv" style="grid-column:10/span 3; grid-row:2/span 5; --d:.28s;">
+            <div class="kick">痛点 2.4</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">并行缺少<br>统一视图</h3>
+            <p class="body-sm" style="font-size:17px;">前端、后端、测试分别推进时，结果汇总、进度跟踪基本靠<b>人工拉群、发消息催办</b>。</p>
+            <p class="body-sm" style="font-size:17px; margin-top:10px;">遗漏、重复、信息不同步的情况，时有发生。</p>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.34s; padding:24px 36px; justify-content:center;">
+            <div class="body-sm" style="font-size:19px;">看似都是「小事」，但发生频率极高 —— 每天都在持续消耗研发和管理人员的时间；而<mark>审批缺位</mark>与<mark>上下文丢失</mark>，埋下的是实实在在的质量与安全隐患。</div>
+        </div>
+    </div>
+    <div class="pagenum">25 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 24 · 设计思路：三个「当作」
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">设计思路：把协作搬进「群聊」</h2>
+            <div class="kick">灵感来自 AgentHub 的会话化协作模式</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 4; --d:.1s; justify-content:space-between;">
+            <div>
+                <div class="kick">Idea-01</div>
+                <h3 class="h-card" style="margin:12px 0 16px;">把 Agent<br>当作联系人</h3>
+                <p class="body-sm">像 @ 同事一样调用 Agent 与工具：有名字、有角色、有在线状态 —— <b>调用即对话</b>。</p>
+            </div>
+            <div class="cmark"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+        </div>
+        <div class="card rv" style="grid-column:5/span 4; grid-row:2/span 4; --d:.17s; justify-content:space-between;">
+            <div>
+                <div class="kick">Idea-02</div>
+                <h3 class="h-card" style="margin:12px 0 16px;">把会话<br>当作工作空间</h3>
+                <p class="body-sm">一项任务的全部过程 —— 讨论、思考、调用、产出 —— 沉淀在<b>同一个可追溯的会话</b>里。</p>
+            </div>
+            <div class="cmark"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+        </div>
+        <div class="card rv" style="grid-column:9/span 4; grid-row:2/span 4; --d:.24s; justify-content:space-between;">
+            <div>
+                <div class="kick">Idea-03</div>
+                <h3 class="h-card" style="margin:12px 0 16px;">把文件与产物<br>当作共享上下文</h3>
+                <p class="body-sm">任务绑定工作区目录；文档、代码、部署预览统一以<b>产物卡片</b>挂载，随取随用。</p>
+            </div>
+            <div class="cmark"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+        </div>
+        <div class="card lemon rv" style="grid-column:1/span 12; grid-row:6/span 3; --d:.31s; padding:30px 40px; justify-content:center;">
+            <div class="kick" style="margin-bottom:14px;">上篇的五个机制，在这里各有落点</div>
+            <div style="display:flex; gap:24px; justify-content:space-between;">
+                <div style="flex:1;"><div class="h-sub">隔离</div><div class="body-sm" style="margin-top:6px;">= 工作区边界</div></div>
+                <div style="flex:1;"><div class="h-sub">通信</div><div class="body-sm" style="margin-top:6px;">= 结构化消息 Parts</div></div>
+                <div style="flex:1;"><div class="h-sub">状态</div><div class="body-sm" style="margin-top:6px;">= 会话即档案</div></div>
+                <div style="flex:1;"><div class="h-sub">调度</div><div class="body-sm" style="margin-top:6px;">= Orchestrator</div></div>
+                <div style="flex:1;"><div class="h-sub">成本</div><div class="body-sm" style="margin-top:6px;">= 本地优先</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">26 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 25 · 五条措施
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">五条措施：从「零散日志」到「结构化工作空间」</h2>
+            <div class="kick">Part 02 · 怎么做</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 3; --d:.1s;">
+            <div class="kick">措施一</div>
+            <h3 class="h-sub" style="margin:10px 0 12px;">以「会话」而非「日志」组织工作</h3>
+            <p class="body-sm" style="font-size:16px;">消息按<b>结构化 Parts</b> 分类渲染：文本说明 / 代码片段 / 思考过程 / 工具调用 / 执行结果 / 产物引用，各自独立展示。检索「某一步做了什么」，直接定位消息类型，不在大段日志里逐行翻找。</p>
+        </div>
+        <div class="card rv" style="grid-column:5/span 4; grid-row:2/span 3; --d:.16s;">
+            <div class="kick">措施二</div>
+            <h3 class="h-sub" style="margin:10px 0 12px;">文件与产物纳入「共享工作区」</h3>
+            <p class="body-sm" style="font-size:16px;">每个任务绑定明确的<b>工作区目录</b>，所有读写限制在目录范围内 —— 从机制上避免误改其他项目。文档、图片、代码、部署预览统一以「产物卡片」挂载在会话里，点开即可预览。</p>
+        </div>
+        <div class="card rv" style="grid-column:9/span 4; grid-row:2/span 3; --d:.22s;">
+            <div class="kick">措施三</div>
+            <h3 class="h-sub" style="margin:10px 0 12px;">高风险操作前置审批</h3>
+            <p class="body-sm" style="font-size:16px;">批量写入、敏感命令、正式发布：加一个轻量<b>「审批模式」</b>开关 —— 执行前弹出确认卡片、列明操作内容，批准后才真正执行。把「先斩后奏」变成<mark>「先审后行」</mark>。</p>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:5/span 4; --d:.28s;">
+            <div class="kick">措施四</div>
+            <h3 class="h-sub" style="margin:10px 0 12px;">任务可拆分、可并行、可汇总</h3>
+            <p class="body-sm">引入<b>「协调者」</b>角色（人工 PM，或具备编排能力的工具 / Agent）：拆解大任务 → 分发给人或工具并行处理 → 自动跟踪各子任务的完成 / 失败 / 阻塞状态 → 全部完成后自动聚合为一份<b>结构化总结</b> —— 减少「逐个催进度、手动拼结果」的沟通成本。</p>
+        </div>
+        <div class="card ink rv" style="grid-column:7/span 6; grid-row:5/span 4; --d:.34s;">
+            <div class="kick" style="color:var(--lemon); opacity:1;">措施五</div>
+            <h3 class="h-sub" style="margin:10px 0 12px;">本地优先、数据自主可控</h3>
+            <p class="body-sm">核心数据 —— 会话记录、密钥、工作区文件 —— 默认保存在<b>本地或团队自有环境</b>，不依赖第三方托管服务。兼顾协作效率与数据安全合规，尤其适合对数据出境、第三方存储有严格限制的场景。</p>
+        </div>
+    </div>
+    <div class="pagenum">27 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 26 · 流程走查 ①（截图 1/2：澄清 + 审批）
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">流程走查 ①：从需求到计划 —— 澄清与审批，都在会话里</h2>
+            <div class="kick">AgentHub 真实操作 · 记账 App 需求</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 7; --d:.12s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">① 需求澄清 · Clarify</div>
+            <div class="shot"><img src="assets/1.png" alt="Orchestrator 需求澄清卡片"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">Orchestrator 主动追问关键问题，用<b>结构化选项</b>代替自由文本 —— 答完提交，需求边界先对齐再动手。</p>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 7; --d:.2s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">② 计划审批 · Approve</div>
+            <div class="shot"><img src="assets/2.png" alt="Orchestrator 计划待确认审批卡片"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">思考过程透明可见；拆出的子任务以「计划待确认」卡片<mark>前置审批</mark> —— 拒绝或执行，人点头才算数。</p>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">28 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 27 · 流程走查 ②（截图 3/4：产物 + 交付）
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">流程走查 ②：从生产到交付 —— 产物可预览，结果可看懂</h2>
+            <div class="kick">AgentHub 真实操作 · 记账 App 需求</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 6; --d:.12s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">③ 产物挂载 · Artifacts</div>
+            <div class="shot"><img src="assets/3.png" alt="PRD 产物卡片与实时预览"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">PRD 以<b>产物卡片</b>挂进会话，右侧点开即预览 —— 不用再去邮件、网盘、聊天记录里分头找。</p>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 6; --d:.2s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">④ 交付汇总 · Delivery</div>
+            <div class="shot"><img src="assets/4.png" alt="Orchestrator 交付总结与应用预览"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">Orchestrator 自动聚合交付总结：已实现功能逐项打勾、技术要点、下一步建议 —— 旁边就是<b>可运行的应用预览</b>。</p>
+            </div>
+        </div>
+        <div class="card lemon t-strip rv" style="grid-column:1/span 12; grid-row:8; --d:.28s;">
+            <div class="kick" style="opacity:1;">可观测性</div>
+            <div class="h-sub">即使不了解过程的人，打开这一个会话，几秒内就能看懂「做了什么、做得怎么样、产出在哪里」</div>
+        </div>
+    </div>
+    <div class="pagenum">29 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 28 · 目标成效
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">目标成效：用「结构化」替代「碎片化」</h2>
+            <div class="kick">Part 02 · 做成什么样</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:2/span 7; --d:.12s; padding:28px 32px;">
+            <table class="tbl" style="flex:1;">
+                <tr><th style="width:16%;">维度</th><th style="width:38%;">现状痛点</th><th>改进后预期效果</th></tr>
+                <tr><td><b>可追溯</b></td><td>事后说不清任务当时为什么这么改</td><td>任何一项任务的来龙去脉，均可在会话中<b>完整复原</b></td></tr>
+                <tr><td><b>提效率</b></td><td>反复查找文件、拼凑上下文耗时</td><td>结构化产物 + 工作区管理，直接节省沟通与查找时间</td></tr>
+                <tr><td><b>降风险</b></td><td>高风险操作「先做后知」，误操作难追责</td><td>前置审批 + 工作区路径限制，从流程上<b>降低生产事故概率</b></td></tr>
+                <tr><td><b>易协同</b></td><td>新成员 / 跨部门接手任务，交接培训成本高</td><td>打开会话即获得完整上下文，<b>降低交接和培训成本</b></td></tr>
+            </table>
+        </div>
+        <div class="card lemon rv" style="grid-column:9/span 4; grid-row:2/span 7; --d:.2s; justify-content:space-between; padding:32px 36px;">
+            <div class="kick">预期收益 · 提效率</div>
+            <div class="num-stat" style="font-size:110px;">20–30<small style="font-size:56px;">%</small></div>
+            <div class="body-sm">预计节省的<b>沟通与查找时间</b> —— 来自结构化产物与工作区管理。</div>
+            <div class="body-sm" style="opacity:.75;">风险与协同的改善，则是长期复利：审批留痕、上下文可传承。</div>
+        </div>
+    </div>
+    <div class="pagenum">30 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 29 · 推广场景
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">推广场景：不止研发，四个岗位都能用</h2>
+            <div class="kick">Part 02 · 在哪里用</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 3; grid-row:2/span 6; --d:.1s;">
+            <div class="kick">场景一</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">软件研发</h3>
+            <p class="body-sm" style="font-size:17px;">代码评审、需求拆解、多人 / 多工具并行开发的<b>任务跟踪与产物沉淀</b>。</p>
+            <p class="body-sm" style="font-size:17px; margin-top:10px; opacity:.75;">尤其适合前后端并行、多 Agent 辅助编码的团队。</p>
+        </div>
+        <div class="card rv" style="grid-column:4/span 3; grid-row:2/span 6; --d:.16s;">
+            <div class="kick">场景二</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">项目管理</h3>
+            <p class="body-sm" style="font-size:17px;">多方协作的项目群，用<b>结构化会话</b>替代零散的微信 / 邮件沟通记录。</p>
+            <p class="body-sm" style="font-size:17px; margin-top:10px; opacity:.75;">便于项目复盘、进度审计与知识沉淀。</p>
+        </div>
+        <div class="card rv" style="grid-column:7/span 3; grid-row:2/span 6; --d:.22s;">
+            <div class="kick">场景三</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">测试运维</h3>
+            <p class="body-sm" style="font-size:17px;">变更操作、脚本执行前引入<b>审批流程</b>，降低误操作风险。</p>
+            <p class="body-sm" style="font-size:17px; margin-top:10px; opacity:.75;">执行记录全程可追溯，便于故障排查与事后复盘。</p>
+        </div>
+        <div class="card ink rv" style="grid-column:10/span 3; grid-row:2/span 6; --d:.28s;">
+            <div class="kick" style="color:var(--lemon); opacity:1;">场景四</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">数据安全<br>与合规</h3>
+            <p class="body-sm" style="font-size:17px;">敏感文件读写、批量操作场景，<b>工作区隔离 + 审批机制</b>双重把关。</p>
+            <p class="body-sm" style="font-size:17px; margin-top:10px; opacity:.75;">满足内控与审计合规要求。</p>
+        </div>
+        <div class="card lemon t-strip rv" style="grid-column:1/span 12; grid-row:8; --d:.34s;">
+            <div class="kick" style="opacity:1;">同一套机制，四种用法</div>
+            <div class="h-sub">结构化会话 + 共享工作区 + 前置审批 + 协调者调度</div>
+        </div>
+    </div>
+    <div class="pagenum">31 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 30 · 总结
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">总结</h2>
+            <div class="kick">Summary</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:2; --d:.1s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">01</span><span class="h-sub">隔离是协同的根基 —— 按字段粒度做，别一刀切</span>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:3; --d:.16s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">02</span><span class="h-sub">通信就两个关键字 —— 异步、消息</span>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:4; --d:.22s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">03</span><span class="h-sub">协调者必须「理解」，不能只做「转发」</span>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:5; --d:.28s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">04</span><span class="h-sub">可控比聪明更重要 —— 约束越清楚，输出越稳定</span>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:6; --d:.34s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">05</span><span class="h-sub">多智能体是拿 Token 换性能 —— 只打值得打的仗</span>
+        </div>
+        <div class="card ink rv" style="grid-column:9/span 4; grid-row:2/span 5; --d:.4s; justify-content:space-between; padding:36px 40px;">
+            <div class="blockmark" style="color:var(--accent);"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+            <div>
+                <div class="h-hero" style="font-size:84px;">谢谢</div>
+                <div class="kick lg" style="margin-top:10px; color:var(--accent); opacity:1;">Thanks · Q&amp;A</div>
+            </div>
+            <div class="body-sm" style="opacity:.8;">参考：Anthropic《How we built our multi-agent research system》· 知识库 20+ 篇阅读笔记 · AgentHub 项目实践</div>
+        </div>
+        <div class="card lemon t-strip rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.46s;">
+            <div class="kick" style="opacity:1;">结语 · 两篇各一句</div>
+            <div class="h-card">上篇：拿 Token 换性能，只打值得打的仗 ｜ 下篇：用结构化会话，取代零散终端记录</div>
+        </div>
+    </div>
+    <div class="pagenum">32 / 48</div>
+</section>
+
+
+<!-- ===========================================
+     SLIDE 33 · 主题二章节页
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card ink rv" style="grid-column:1/span 5; grid-row:1/span 8; --d:.05s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick lg" style="color:var(--accent); opacity:1;">Topic</div>
+            <div class="num-hero">02</div>
+            <div class="kick lg">AI Runtime Center</div>
+        </div>
+        <div class="card lemon rv" style="grid-column:6/span 7; grid-row:1/span 5; --d:.15s; justify-content:space-between; padding:40px 44px;">
+            <div class="kick">主题二 · 项目管理实践验证</div>
+            <h2 class="h-sec">让 AI Agent<br>围绕项目管理体系运行</h2>
+            <div class="body">以现有项目管理体系为主线：AI Agent 围绕项目资产和流程节点运行，人围绕 AI 输出完成确认、修正和沉淀。</div>
+        </div>
+        <div class="card rv" style="grid-column:6/span 7; grid-row:6/span 3; --d:.25s; padding:30px 44px; justify-content:center;">
+            <div class="kick" style="margin-bottom:12px;">载体</div>
+            <div class="body-sm" style="font-size:20px; line-height:1.8;">AI 运行中心（AI Runtime Center）· 三栏统一工作区<br>覆盖需求、任务、分工、评审、文档与复盘节点</div>
+        </div>
+    </div>
+    <div class="pagenum invert">33 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 34 · 核心命题：一条主线，两个围绕
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">核心命题：一条主线，两个围绕</h2>
+            <div class="kick">Topic 02 · Thesis</div>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 12; grid-row:2/span 2; --d:.1s; flex-direction:row; align-items:center; gap:36px; padding:0 40px;">
+            <div class="kick lg" style="color:var(--accent); opacity:1; flex-shrink:0;">主线</div>
+            <div class="h-card">项目管理体系是运行骨架 —— AI 进入现有的迭代、需求、任务、分工、评审、文档与复盘节点</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:4/span 5; --d:.18s; justify-content:space-between; padding:36px 40px;">
+            <div>
+                <div class="kick">围绕 ①</div>
+                <h3 class="h-card" style="margin:16px 0 20px;">AI Agent 围绕项目资产<br>与流程节点运行</h3>
+                <p class="body">不再靠个人复制粘贴上下文 —— 而是基于系统组织的<b>需求、任务、代码、文档、负载</b>做判断，在节点上输出澄清、拆解、分工与文档。</p>
+            </div>
+            <div class="cmark"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:4/span 5; --d:.26s; justify-content:space-between; padding:36px 40px;">
+            <div>
+                <div class="kick">围绕 ②</div>
+                <h3 class="h-card" style="margin:16px 0 20px;">人围绕 AI 输出<br>确认、修正与沉淀</h3>
+                <p class="body">人从重复整理上下文，转向<b>确认问题、修正草案、采纳或驳回建议</b>，并把结果沉淀为项目资产。</p>
+            </div>
+            <div class="cmark"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+        </div>
+    </div>
+    <div class="pagenum">34 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 35 · 为什么要做：三个缺口
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">为什么要做：让 AI 从个人工具进入项目流程</h2>
+            <div class="kick">Topic 02 · The Gap</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 12; grid-row:2; --d:.08s; flex-direction:row; align-items:center; gap:24px; padding:0 36px;">
+            <div class="h-sub">个人 AI 解决的是<mark>局部效率</mark>，项目资产驱动解决的是<mark>组织能力</mark> —— 当前多数 AI 使用仍停留在个人工具层面。</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:3/span 5; --d:.14s;">
+            <div class="kick">Gap-01</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">迭代上下文<br>未组织</h3>
+            <p class="body-sm">一个迭代拆成多需求、多任务，由不同人承接；既有迭代级文档也有需求级文档，却缺乏<b>「迭代 → 需求 → 任务 → 人员 → 代码 → 文档 → 反馈」</b>的统一视图。</p>
+        </div>
+        <div class="card rv" style="grid-column:5/span 4; grid-row:3/span 5; --d:.2s;">
+            <div class="kick">Gap-02</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">AI 输出<br>未入流程</h3>
+            <p class="body-sm">AI 结果停留在个人对话里，没有变成<b>可确认、可复用、可追踪、可沉淀</b>的团队管理资产 —— 无法进入评审表、估算单与任务记录。</p>
+        </div>
+        <div class="card rv" style="grid-column:9/span 4; grid-row:3/span 5; --d:.26s;">
+            <div class="kick">Gap-03</div>
+            <h3 class="h-card" style="margin:12px 0 16px;">项目资产<br>未增强</h3>
+            <p class="body-sm">澄清、拆解、偏差、评审、缺陷、上线问题被记录了，却没有<b>回流</b> —— 无法反过来校准下一轮的需求理解、拆解、估算与评审。</p>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 12; grid-row:8; --d:.32s; flex-direction:row; align-items:center; gap:24px; padding:0 36px;">
+            <div class="body-sm" style="font-size:19px;">缺任何一条，AI 都只是个人工具 —— AI 运行中心把这些事<mark>固化进系统</mark>，而非依赖每个人自己记得用 AI。</div>
+        </div>
+    </div>
+    <div class="pagenum">35 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 36 · 判定标准：进入流程的四件事
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">判定标准：怎样才算 AI 真正进入流程</h2>
+            <div class="kick">Topic 02 · The Rubric</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 3; grid-row:2/span 5; --d:.1s; justify-content:space-between;">
+            <div>
+                <div class="num-stat-sm">01</div>
+                <h3 class="h-card" style="margin:14px 0 14px;">统一上下文输入</h3>
+                <p class="body-sm" style="font-size:17px;">结合迭代、需求、任务、人员、代码、文档和反馈判断 —— 而非只读一段需求或代码。</p>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:4/span 3; grid-row:2/span 5; --d:.16s; justify-content:space-between;">
+            <div>
+                <div class="num-stat-sm">02</div>
+                <h3 class="h-card" style="margin:14px 0 14px;">流程对象输出</h3>
+                <p class="body-sm" style="font-size:17px;">进入需求评审表、估算单、任务记录、评审意见和复盘记录 —— 而非停留在聊天结果。</p>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 3; grid-row:2/span 5; --d:.22s; justify-content:space-between;">
+            <div>
+                <div class="num-stat-sm">03</div>
+                <h3 class="h-card" style="margin:14px 0 14px;">人工确认生效</h3>
+                <p class="body-sm" style="font-size:17px;">AI 可建议，但不替代责任人决策 —— 最终由组长、开发、测试确认、修正、采纳或驳回。</p>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:10/span 3; grid-row:2/span 5; --d:.28s; justify-content:space-between;">
+            <div>
+                <div class="num-stat-sm">04</div>
+                <h3 class="h-card" style="margin:14px 0 14px;">执行反馈回流</h3>
+                <p class="body-sm" style="font-size:17px;">执行偏差、评审问题、上线问题、复盘结论回流为项目资产 —— 成为下一轮判断依据。</p>
+            </div>
+        </div>
+        <div class="card lemon rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.34s; padding:24px 40px; justify-content:center;">
+            <div class="h-card" style="text-align:center;">统一上下文输入 + 流程对象输出 + 人工确认生效 + 执行反馈回流<br>= <span class="sw-ink">AI 进入项目管理流程</span></div>
+        </div>
+    </div>
+    <div class="pagenum">36 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 37 · AI 如何参与：三栏统一工作区（全景截图）
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">AI 如何参与：嵌入统一工作区，沿项目链路持续参与</h2>
+            <div class="kick">Topic 02 · Workspace</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 7; --d:.12s;">
+            <div class="kick">三栏统一工作区</div>
+            <ul class="list body-sm" style="margin-top:16px;">
+                <li><b>左侧导航</b> —— 按 Service / 按故事，双视图切换</li>
+                <li><b>中间业务区</b> —— 渲染结构化产出</li>
+                <li><b>右侧会话区</b> —— 承载 AI 运行会话</li>
+            </ul>
+            <div class="kick" style="margin-top:22px;">人机协同定位</div>
+            <p class="body-sm" style="margin-top:12px;">AI 负责<mark>「读上下文、找缺口、给草案」</mark>；人负责<mark>「确认、调整、定稿」</mark>。</p>
+            <p class="body-sm" style="margin-top:12px; opacity:.8;">每个关键环节都留有人工确认点（如「确认应用」「确认任务拆解」）—— AI 建议不会绕过人工直接生效。</p>
+        </div>
+        <div class="card rv" style="grid-column:5/span 8; grid-row:2/span 7; --d:.2s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">AI 运行中心统一工作区 · 真实界面</div>
+            <div class="shot light"><img src="assets/v4/panorama-ui.png" alt="AI 运行中心三栏统一工作区"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">同一屏内：左导航切换 Service / 故事，中区渲染结构化产出，右区承载 AI 会话 —— <b>无需在多个页面反复跳转</b>。</p>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">37 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 38 · 核心业务链路
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">一条核心业务链路</h2>
+            <div class="kick">Topic 02 · Core Chain</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 3; grid-row:2/span 5; --d:.1s; justify-content:space-between;">
+            <div>
+                <div class="kick">Step-01</div>
+                <h3 class="h-card" style="margin:14px 0 14px;">需求 / 故事</h3>
+                <p class="body-sm" style="font-size:17px;">业务需求条目<br>录入、澄清与确认</p>
+            </div>
+            <div style="font-family:var(--font-m); font-size:36px; font-weight:700;">→</div>
+        </div>
+        <div class="card rv" style="grid-column:4/span 3; grid-row:2/span 5; --d:.16s; justify-content:space-between;">
+            <div>
+                <div class="kick">Step-02</div>
+                <h3 class="h-card" style="margin:14px 0 14px;">待办任务</h3>
+                <p class="body-sm" style="font-size:17px;">可执行工作项<br>模块归属 + 复杂度</p>
+            </div>
+            <div style="font-family:var(--font-m); font-size:36px; font-weight:700;">→</div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 3; grid-row:2/span 5; --d:.22s; justify-content:space-between;">
+            <div>
+                <div class="kick">Step-03</div>
+                <h3 class="h-card" style="margin:14px 0 14px;">分工负责人</h3>
+                <p class="body-sm" style="font-size:17px;">能力匹配 + 负载均衡<br><b>AI 建议 + 组长确认</b></p>
+            </div>
+            <div style="font-family:var(--font-m); font-size:36px; font-weight:700;">→</div>
+        </div>
+        <div class="card ink rv" style="grid-column:10/span 3; grid-row:2/span 5; --d:.28s; justify-content:space-between;">
+            <div>
+                <div class="kick" style="color:var(--accent); opacity:1;">Step-04</div>
+                <h3 class="h-card" style="margin:14px 0 14px;">迭代 / 上线点</h3>
+                <p class="body-sm" style="font-size:17px;">上线交付与评估<br>计分与复盘</p>
+            </div>
+            <div style="font-family:var(--font-m); font-size:36px; font-weight:700; color:var(--accent);">↺</div>
+        </div>
+        <div class="card lemon rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.34s; padding:26px 40px; justify-content:center;">
+            <div class="h-card" style="text-align:center;">AI 在每一环给出<span class="sw-ink">结构化草案</span>，人在每个关口<span class="sw-ink">确认</span></div>
+        </div>
+    </div>
+    <div class="pagenum">38 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 39 · 完整案例总览：10 步生命周期
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">完整案例：一个需求走完整个生命周期</h2>
+            <div class="kick">贯穿案例 ·「需求导入解析改造成异步任务」</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 12; grid-row:2/span 5; --d:.12s; padding:26px 30px;">
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px; flex:1;">
+                <div style="border:1.5px solid var(--ink); padding:14px 16px;"><div class="kick">01 需求</div><div class="h-sub" style="margin-top:8px; font-size:20px;">业务诉求</div><div class="body-sm" style="font-size:15px; margin-top:6px;">需求录入</div></div>
+                <div style="border:1.5px solid var(--ink); background:var(--accent); padding:14px 16px;"><div class="kick">02 AI 澄清</div><div class="h-sub" style="margin-top:8px; font-size:20px;">识别不明确点</div><div class="body-sm" style="font-size:15px; margin-top:6px;">生成澄清问题</div></div>
+                <div style="border:1.5px solid var(--ink); padding:14px 16px;"><div class="kick">03 人工确认</div><div class="h-sub" style="margin-top:8px; font-size:20px;">确认/修正/驳回</div><div class="body-sm" style="font-size:15px; margin-top:6px;">记录确认人</div></div>
+                <div style="border:1.5px solid var(--ink); background:var(--accent); padding:14px 16px;"><div class="kick">04 AI 拆解</div><div class="h-sub" style="margin-top:8px; font-size:20px;">可执行待办</div><div class="body-sm" style="font-size:15px; margin-top:6px;">评估工作量</div></div>
+                <div style="border:1.5px solid var(--ink); background:var(--accent); padding:14px 16px;"><div class="kick">05 AI 分工</div><div class="h-sub" style="margin-top:8px; font-size:20px;">建议负责人</div><div class="body-sm" style="font-size:15px; margin-top:6px;">能力 + 负载匹配</div></div>
+                <div style="border:1.5px solid var(--ink); padding:14px 16px;"><div class="kick">06 开发</div><div class="h-sub" style="margin-top:8px; font-size:20px;">编码实现</div><div class="body-sm" style="font-size:15px; margin-top:6px;">AI 编码辅助·规划</div></div>
+                <div style="border:1.5px solid var(--ink); background:var(--accent); padding:14px 16px;"><div class="kick">07 测试</div><div class="h-sub" style="margin-top:8px; font-size:20px;">AI 生成用例</div><div class="body-sm" style="font-size:15px; margin-top:6px;">缺陷记录回流</div></div>
+                <div style="border:1.5px solid var(--ink); background:var(--accent); padding:14px 16px;"><div class="kick">08 文档</div><div class="h-sub" style="margin-top:8px; font-size:20px;">按阶段生成</div><div class="body-sm" style="font-size:15px; margin-top:6px;">迭代文档矩阵</div></div>
+                <div style="border:1.5px solid var(--ink); background:var(--accent); padding:14px 16px;"><div class="kick">09 上线</div><div class="h-sub" style="margin-top:8px; font-size:20px;">AI 辅助评估</div><div class="body-sm" style="font-size:15px; margin-top:6px;">投产风险检查</div></div>
+                <div style="border:1.5px solid var(--ink); padding:14px 16px;"><div class="kick">10 复盘</div><div class="h-sub" style="margin-top:8px; font-size:20px;">纪要生成</div><div class="body-sm" style="font-size:15px; margin-top:6px;">改进计划</div></div>
+            </div>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.2s; flex-direction:row; align-items:center; gap:28px; padding:0 40px;">
+            <div style="font-family:var(--font-m); font-size:44px; font-weight:700; color:var(--accent); flex-shrink:0;">↺</div>
+            <div class="h-sub" style="color:var(--accent); flex-shrink:0;">资产沉淀</div>
+            <div class="body-sm" style="font-size:18px;">澄清问题、确认记录、拆解偏差、评审意见、上线问题 —— 每次产出都被记录并回流。<b>资产越完整，AI 判断越有依据；AI 参与越深，资产沉淀越快。</b></div>
+        </div>
+    </div>
+    <div class="pagenum">39 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 40 · 案例①：录入 → 澄清 → 人工确认（截图）
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">案例 ①：从录入到澄清 —— 模糊需求变成工程约束</h2>
+            <div class="kick">Step 01–03 · Clarify</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 7; --d:.12s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">① 需求录入 · Import</div>
+            <div class="shot light"><img src="assets/v4/step-01-demand-import.png" alt="需求批量导入"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">「需求导入解析太慢，需要改造成异步任务」被录入系统 —— 批量导入一次生成 <b>53 条需求</b>，AI 从这条需求开始持续参与。</p>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 7; --d:.2s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">② AI 澄清 → ③ 人工确认 · Clarify &amp; Confirm</div>
+            <div class="shot light"><img src="assets/v4/step-02-clarification.png" alt="AI 需求澄清界面"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">AI 识别不明确点：「是否允许并发解析？失败是否重试？是否保留历史结果？」；人工补充 2 个约束后「确认应用」定稿 —— <b>一句模糊需求 → 可执行工程约束</b>。</p>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">40 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 41 · 案例②：AI 拆解 → AI 分工（截图）
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">案例 ②：拆解与分工 —— 每条建议都可核对</h2>
+            <div class="kick">Step 04–05 · Decompose &amp; Assign</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 7; --d:.12s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">④ AI 拆解 · Decompose</div>
+            <div class="shot light"><img src="assets/v4/step-04-decomposition.png" alt="AI 需求拆解结果"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">拆为前端 / 后端 / 数据库 / 测试 / 文档 <b>5 类 12 条可执行待办</b>，每条标注模块归属、改动范围、复杂度与工作量。</p>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 7; --d:.2s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">⑤ AI 分工 · Assign</div>
+            <div class="shot light"><img src="assets/v4/step-05-assignment.png" alt="智能任务分工工作台"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">结合迭代工作量、组员<b>能力档案</b>与组长分工策略，逐条给出建议负责人 + 理由 + 置信度 + 工作量前后对比 —— <mark>组长确认后才写回</mark>。</p>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">41 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 42 · 案例③：测试 → 文档 → 上线 → 复盘（截图）
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">案例 ③：测试、文档、上线、复盘 —— 全程留痕</h2>
+            <div class="kick">Step 07–10 · Test &amp; Docs &amp; Release</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 6; --d:.12s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">⑦ 测试 · Test</div>
+            <div class="shot light"><img src="assets/v4/step-07-test-doc.png" alt="AI 生成测试用例文档"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">AI 基于需求与模块生成单元 / 集成测试用例，识别成功 / 失败 / 刷新 / 重复提交 / 重解析 <b>5 种场景</b>；缺陷记录回流为过程级资产。</p>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 6; --d:.2s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">⑧ 文档 · Docs</div>
+            <div class="shot light"><img src="assets/v4/step-08-demand-doc.png" alt="文档生成中心"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;"><b>16 类文档</b>按 7 个迭代阶段自动生成：模板类走路径 B（后端直连），需规与测试文档走路径 A（Runner 异步批量）。</p>
+            </div>
+        </div>
+        <div class="card ink rv" style="grid-column:1/span 12; grid-row:8; --d:.28s; flex-direction:row; align-items:center; gap:28px; padding:0 36px;">
+            <div class="body-sm" style="font-size:18px;"><b style="color:var(--accent);">⑨ 上线</b> —— 投产风险评估表、健康检查表、扫雷检查单，识别数据库变更与接口兼容性风险；<b style="color:var(--accent);">⑩ 复盘</b> —— 回顾纪要与改进计划初稿自动产出，结论回流反哺下一轮。</div>
+        </div>
+    </div>
+    <div class="pagenum">42 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 43 · 实现原理：五类项目资产
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">实现原理：项目资产如何组织上下文</h2>
+            <div class="kick">Topic 02 · Project Assets</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 3; --d:.1s;">
+            <div class="kick">迭代级</div>
+            <ul class="list body-sm" style="margin-top:12px; font-size:17px;">
+                <li>需求评审表</li><li>功能点估算单</li><li>测试说明</li><li>上线材料 / 迭代总结</li>
+            </ul>
+        </div>
+        <div class="card rv" style="grid-column:5/span 4; grid-row:2/span 3; --d:.16s;">
+            <div class="kick">需求级</div>
+            <ul class="list body-sm" style="margin-top:12px; font-size:17px;">
+                <li>需求说明</li><li>澄清记录</li><li>详细设计</li><li>接口说明 / 拆解记录</li>
+            </ul>
+        </div>
+        <div class="card rv" style="grid-column:9/span 4; grid-row:2/span 3; --d:.22s;">
+            <div class="kick">工程级</div>
+            <ul class="list body-sm" style="margin-top:12px; font-size:17px;">
+                <li>项目代码</li><li>接口实现</li><li>数据表 / 配置</li><li>提交记录</li>
+            </ul>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:5/span 4; --d:.28s;">
+            <div class="kick">过程级</div>
+            <ul class="list body-sm" style="margin-top:12px; font-size:17px;">
+                <li>任务状态</li><li>评审意见</li><li>缺陷记录</li><li>上线问题 / 复盘</li>
+            </ul>
+        </div>
+        <div class="card rv" style="grid-column:5/span 4; grid-row:5/span 4; --d:.34s;">
+            <div class="kick">组织级</div>
+            <ul class="list body-sm" style="margin-top:12px; font-size:17px;">
+                <li>成员能力画像</li><li>当前工作负载</li><li>历史交付</li><li>组长分工策略</li>
+            </ul>
+        </div>
+        <div class="card lemon rv" style="grid-column:9/span 4; grid-row:5/span 4; --d:.4s;">
+            <div class="kick">案例印证</div>
+            <p class="body-sm" style="margin-top:12px; font-size:17px;">「导入解析改异步」中，Agent 同时读取<b>需求描述、代码仓库、库表结构、测试模板</b>四类资产，才给出前端 / 后端 / 数据库 / 测试的完整拆解 —— 单靠一段需求文本做不到。</p>
+        </div>
+    </div>
+    <div class="pagenum">43 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 44 · 五个设计决策 + 增强飞轮
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">为什么这样设计：五个设计决策</h2>
+            <div class="kick">Topic 02 · Design Decisions</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:2/span 7; --d:.12s; padding:24px 30px; justify-content:space-between;">
+            <div style="display:flex; flex-direction:column; gap:14px; flex:1; justify-content:space-between;">
+                <div style="display:flex; gap:18px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0; min-width:110px;">Runtime</span><span class="body-sm" style="font-size:17px;">不是运行时容器，而是<b>能力目录 + 运行编排</b>：每个 AI 能力建模为可注册、可路由、可回流的「运行会话」，系统知道「当前在跑什么、跑到哪了、产出是什么」。</span></div>
+                <div style="display:flex; gap:18px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0; min-width:110px;">注册化</span><span class="body-sm" style="font-size:17px;">新增一个 AI 能力只需<b>登记能力定义</b> —— 运行中枢与前端壳零改动，自动接入同一套工作区、会话与回流机制。</span></div>
+                <div style="display:flex; gap:18px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0; min-width:110px;">Runner+Ucode</span><span class="body-sm" style="font-size:17px;">直接调 LLM 只能回答问题；走 Runner + Ucode 智能体才能<b>读代码仓库、产出可落库的流程对象</b> ——「聊天」和「进入研发管理流程」是两件事。</span></div>
+                <div style="display:flex; gap:18px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0; min-width:110px;">人工确认</span><span class="body-sm" style="font-size:17px;">AI 不知道组织内部的优先级、资源约束和隐性规则 —— 人工确认不是不信任 AI，而是把<b>最终决策权和管理责任</b>留在人手里。</span></div>
+                <div style="display:flex; gap:18px; align-items:flex-start;"><span class="kick lg" style="opacity:1; flex-shrink:0; min-width:110px;">结构化输出</span><span class="body-sm" style="font-size:17px;">自然语言聊天结果不可复用、不可校验；<b>结构化输出才能落库</b>为流程对象，被后续拆解、文档、巡检复用。</span></div>
+            </div>
+        </div>
+        <div class="card ink rv" style="grid-column:9/span 4; grid-row:2/span 7; --d:.2s; padding:30px 34px; justify-content:space-between;">
+            <div class="kick" style="color:var(--accent); opacity:1;">为什么能力会持续增强</div>
+            <div style="display:flex; flex-direction:column; gap:10px; align-items:stretch;">
+                <div style="background:var(--paper); color:var(--ink); padding:12px 16px; font-weight:700; font-size:19px; text-align:center;">项目资产</div>
+                <div style="text-align:center; color:var(--accent); font-family:var(--font-m); font-size:22px;">↓</div>
+                <div style="background:var(--accent); color:var(--ink); padding:12px 16px; font-weight:700; font-size:19px; text-align:center;">Agent 判断</div>
+                <div style="text-align:center; color:var(--accent); font-family:var(--font-m); font-size:22px;">↓</div>
+                <div style="background:var(--paper); color:var(--ink); padding:12px 16px; font-weight:700; font-size:19px; text-align:center;">人工确认</div>
+                <div style="text-align:center; color:var(--accent); font-family:var(--font-m); font-size:22px;">↓</div>
+                <div style="background:var(--paper); color:var(--ink); padding:12px 16px; font-weight:700; font-size:19px; text-align:center;">执行反馈</div>
+                <div style="text-align:center; color:var(--accent); font-family:var(--font-m); font-size:22px;">↺</div>
+            </div>
+            <p class="body-sm" style="opacity:.85;">资产进入判断 → 人工确认 → 执行反馈 → 回流增强资产 —— <b>持续增强的正向飞轮</b>。</p>
+        </div>
+    </div>
+    <div class="pagenum">44 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 45 · 系统架构：五层 + 双路径
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">系统架构：五层架构，两条调用路径</h2>
+            <div class="kick">Topic 02 · Architecture</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 6; grid-row:2/span 7; --d:.12s;">
+            <div class="kick" style="margin-bottom:14px;">整体架构 · 五层</div>
+            <div class="layers" style="flex:1; justify-content:space-between;">
+                <div class="layer"><span class="ln">L1 外壳</span><span class="ld">AI 运行中心外壳：三栏工作区 · 双视图切换</span></div>
+                <div class="layer"><span class="ln">L2 运行中枢</span><span class="ld">路由分发 · 按标识定位能力模块 · 工作区编排</span></div>
+                <div class="layer lm"><span class="ln">L3 能力层</span><span class="ld">AI Services 能力集合（澄清 / 拆解 / 分工 / 文档 / 巡检）</span></div>
+                <div class="layer"><span class="ln">L4 执行层</span><span class="ld">任务入队 · 异步调度 · Runner 拉起 Ucode · 文档生成引擎</span></div>
+                <div class="layer"><span class="ln">L5 项目管理系统</span><span class="ld">流程对象与资产：需求项 · 拆解任务 · 迭代评审 · 文档资产 · 反馈回流 ↺</span></div>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:7/span 6; grid-row:2/span 4; --d:.2s;">
+            <div class="kick" style="margin-bottom:14px;">两条路径 · 目的地都是大模型</div>
+            <div class="flow" style="margin-bottom:14px;">
+                <div class="step lm"><div class="body-sm" style="font-size:16px;"><b>路径 A · 重 AI 能力</b><br>后端 → Runner（独立进程）→ Ucode 智能体 → 大模型<br>异步执行，能读代码工作区</div></div>
+            </div>
+            <div class="flow">
+                <div class="step"><div class="body-sm" style="font-size:16px;"><b>路径 B · 轻量辅助</b><br>后端 → 大模型（进程内直连）<br>链路更短、延迟更低</div></div>
+            </div>
+        </div>
+        <div class="card ink rv" style="grid-column:7/span 6; grid-row:6/span 3; --d:.28s; padding:26px 34px; justify-content:center;">
+            <div class="kick" style="color:var(--accent); opacity:1; margin-bottom:10px;">案例落地路径 ·「导入解析改异步」</div>
+            <div class="body-sm" style="font-size:17px; line-height:1.7;">前端点击「澄清」→ 中枢将任务入队 → Runner 拉起 Ucode 读取代码工作区 → 调用大模型 → 产出澄清问题与风险项 → <b>回流转交人确认</b></div>
+        </div>
+    </div>
+    <div class="pagenum">45 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 46 · 已落地能力：6 项 Service + 17 类文档
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">已落地能力：6 项 Service + 17 类迭代文档</h2>
+            <div class="kick">Topic 02 · Capabilities</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 5; grid-row:2/span 7; --d:.12s; padding:24px 28px;">
+            <div class="kick" style="margin-bottom:14px;">能力矩阵 · 统一纳入三栏工作区</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; flex:1; align-content:space-between;">
+                <div style="border:1.5px solid var(--ink); padding:12px 14px;"><div class="h-sub" style="font-size:19px;">需求澄清</div><div class="body-sm" style="font-size:14px; margin-top:6px;">不明确点 → 澄清问题 + 风险 + 改写建议</div></div>
+                <div style="border:1.5px solid var(--ink); padding:12px 14px;"><div class="h-sub" style="font-size:19px;">需求拆解</div><div class="body-sm" style="font-size:14px; margin-top:6px;">可执行待办 + 模块 / 范围 / 工作量</div></div>
+                <div style="border:1.5px solid var(--ink); padding:12px 14px;"><div class="h-sub" style="font-size:19px;">需规文档生成</div><div class="body-sm" style="font-size:14px; margin-top:6px;">依据需求 + 库表结构化生成</div></div>
+                <div style="border:1.5px solid var(--ink); padding:12px 14px;"><div class="h-sub" style="font-size:19px;">详设文档生成</div><div class="body-sm" style="font-size:14px; margin-top:6px;">需求 + 代码扫描，含泳道流程图</div></div>
+                <div style="border:1.5px solid var(--ink); padding:12px 14px;"><div class="h-sub" style="font-size:19px;">测试用例生成</div><div class="body-sm" style="font-size:14px; margin-top:6px;">单元 / 集成测试用例 Excel</div></div>
+                <div style="border:1.5px solid var(--ink); background:var(--ink); color:var(--paper); padding:12px 14px;"><div class="h-sub" style="font-size:19px; color:var(--accent);">日志巡检分析</div><div class="body-sm" style="font-size:14px; margin-top:6px;">远程源码根因分析 + 修复方案</div></div>
+            </div>
+        </div>
+        <div class="card rv" style="grid-column:6/span 7; grid-row:2/span 7; --d:.2s; padding:20px 22px;">
+            <div class="kick" style="margin-bottom:12px;">迭代文档矩阵 · 7 阶段 · 17 类已落地 / 3 类规划中</div>
+            <div class="shot light"><img src="assets/v4/iter-docs-real.png" alt="迭代文档生成真实界面"></div>
+            <div class="shot-cap">
+                <p class="body-sm" style="font-size:17px;">左侧按 7 个阶段切换，中间一键「生成文档」，右侧实时展示任务队列与执行状态 —— 模板类走路径 B，需规 / 测试走<b>路径 A 异步批量</b>。</p>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">46 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 47 · 边界与规划
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">边界与规划：AI 不做什么，下一步去哪</h2>
+            <div class="kick">Topic 02 · Boundary &amp; Roadmap</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 4; grid-row:2/span 4; --d:.1s;">
+            <div class="kick">边界 ①</div>
+            <h3 class="h-card" style="margin:12px 0 14px;">资产质量是上限</h3>
+            <p class="body-sm" style="font-size:17px;">需求不完整、文档缺失、任务混乱、代码复杂 —— Agent 建议质量都会下降。<b>资产治理与 Agent 建设同等重要。</b></p>
+        </div>
+        <div class="card rv" style="grid-column:5/span 4; grid-row:2/span 4; --d:.16s;">
+            <div class="kick">边界 ②</div>
+            <h3 class="h-card" style="margin:12px 0 14px;">人不被绕过</h3>
+            <p class="body-sm" style="font-size:17px;">AI 负责建议 + 理由 + 置信度；最终决策与管理责任仍在组长 / 开发 / 测试 —— <b>关键动作必须人工点击确认</b>，并记录确认人与时间。</p>
+        </div>
+        <div class="card rv" style="grid-column:9/span 4; grid-row:2/span 4; --d:.22s;">
+            <div class="kick">边界 ③</div>
+            <h3 class="h-card" style="margin:12px 0 14px;">不追求完全自动化</h3>
+            <p class="body-sm" style="font-size:17px;">当前目标是<b>验证关键节点价值</b>（澄清 / 拆解 / 分工 / 文档 / 巡检）—— 闭环载体已成形，节点正逐步打通。</p>
+        </div>
+        <div class="card lemon rv" style="grid-column:1/span 12; grid-row:6/span 3; --d:.28s; padding:26px 36px; justify-content:center;">
+            <div class="kick" style="margin-bottom:12px;">能力演进路线</div>
+            <div class="flow">
+                <div class="step dk"><div class="body-sm" style="font-size:16px;"><b>已实现</b><br>6 项能力 · 17 类文档 · 双路径链路 · 三栏工作区</div></div>
+                <div class="arr">→</div>
+                <div class="step"><div class="body-sm" style="font-size:16px;"><b>建设中</b><br>代码评审单 / 改进计划补全 · 任务分配独立 Service · 上线问题回流与工作量校准</div></div>
+                <div class="arr">→</div>
+                <div class="step lm"><div class="body-sm" style="font-size:16px;"><b>下一步</b><br>全链路 AI 覆盖 · 跨项目资产共享 · UCode 编码辅助</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="pagenum">47 / 48</div>
+</section>
+
+<!-- ===========================================
+     SLIDE 48 · 主题二总结
+     =========================================== -->
+<section class="slide">
+    <div class="frame">
+        <div class="card t-strip rv" style="grid-column:1/span 12; grid-row:1; --d:.05s;">
+            <h2 class="h-slide">主题二 · 总结</h2>
+            <div class="kick">Summary</div>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:2; --d:.1s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">01</span><span class="h-sub">项目管理体系是运行骨架 —— AI 进节点，不进对话框</span>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:3; --d:.16s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">02</span><span class="h-sub">进入流程四件事 —— 统一上下文 · 流程对象 · 人工确认 · 反馈回流</span>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:4; --d:.22s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">03</span><span class="h-sub">AI 出建议，人做决策 —— 确认权与管理责任始终在人手里</span>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:5; --d:.28s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">04</span><span class="h-sub">项目资产是 AI 的长期上下文 —— 资产越完整，AI 越准</span>
+        </div>
+        <div class="card rv" style="grid-column:1/span 8; grid-row:6; --d:.34s; flex-direction:row; align-items:center; gap:22px; padding:0 30px;">
+            <span class="kick lg" style="opacity:1;">05</span><span class="h-sub">AI 能力随项目持续沉淀和增强 —— 飞轮已经转起来</span>
+        </div>
+        <div class="card ink rv" style="grid-column:9/span 4; grid-row:2/span 5; --d:.4s; justify-content:space-between; padding:36px 40px;">
+            <div class="blockmark" style="color:var(--accent);"><i></i><i class="o"></i><i class="o"></i><i></i></div>
+            <div>
+                <div class="h-hero" style="font-size:84px;">谢谢</div>
+                <div class="kick lg" style="margin-top:10px; color:var(--accent); opacity:1;">Thanks · Q&amp;A</div>
+            </div>
+            <div class="body-sm" style="opacity:.8;">载体：AI 运行中心（AI Runtime Center）· 让 AI Agent 围绕项目管理体系运行</div>
+        </div>
+        <div class="card lemon t-strip rv" style="grid-column:1/span 12; grid-row:7/span 2; --d:.46s;">
+            <div class="kick" style="opacity:1;">结语 · 主题二</div>
+            <div class="h-card">AI 围绕项目资产与流程节点运行，人围绕 AI 输出确认、修正与沉淀</div>
+        </div>
+    </div>
+    <div class="pagenum">48 / 48</div>
+</section>
+
+</deck-stage>
+
+<script>
+/* ===========================================
+   扩展运行时（不触碰模板的 deck-stage 导航）：
+   1) 顶部进度条 —— 监听 deck-stage 的 slidechange 事件
+   2) 内联编辑 —— E 键 / 热区切换，localStorage 自动保存，Ctrl/⌘+S 导出
+   =========================================== */
+
+/* --- 进度条 --- */
+document.querySelector('deck-stage').addEventListener('slidechange', (e) => {
+    const pct = ((e.detail.index + 1) / e.detail.total) * 100;
+    document.getElementById('deckProgress').style.width = pct + '%';
+});
+
+/* --- 内联编辑器 --- */
+class InlineEditor {
+    constructor(stageEl) {
+        this.stage = stageEl;
+        this.isActive = false;
+        this.storageKey = 'multi-agent-deck-v4';
+        this.selectors = '.slide h1, .slide h2, .slide h3, .slide p, .slide li, .slide td, .slide .kick, .slide .h-sub, .slide .h-card, .slide .h-sec, .slide .h-slide, .slide .body, .slide .body-sm, .slide .num-stat, .slide .num-stat-sm, .slide .ld, .slide .h-hero';
+        this.restore();
+    }
+    editableEls() { return document.querySelectorAll(this.selectors); }
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editing', this.isActive);
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        this.editableEls().forEach(el => {
+            if (this.isActive) el.setAttribute('contenteditable', 'true');
+            else el.removeAttribute('contenteditable');
+        });
+    }
+    save() {
+        try { localStorage.setItem(this.storageKey, this.stage.innerHTML); } catch (e) { /* quota */ }
+    }
+    restore() {
+        // slotchange 会触发 deck-stage 重新收集幻灯片，因此直接替换 light DOM 即可
+        try {
+            const saved = localStorage.getItem(this.storageKey);
+            if (saved) this.stage.innerHTML = saved;
+        } catch (e) { /* ignore */ }
+    }
+    exportFile() {
+        if (this.isActive) this.toggleEditMode();
+        const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '多智能体协同原理与AgentHub实践.html';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+}
+
+const editor = new InlineEditor(document.querySelector('deck-stage'));
+
+/* 热区悬停显隐（400ms 宽限；CSS ~ 选择器在此场景会断链，必须用 JS） */
+const hotzone = document.getElementById('editHotzone');
+const editToggle = document.getElementById('editToggle');
+let hideTimeout = null;
+hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); editToggle.classList.add('show'); });
+hotzone.addEventListener('mouseleave', () => {
+    hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400);
+});
+editToggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+editToggle.addEventListener('mouseleave', () => {
+    hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400);
+});
+hotzone.addEventListener('click', () => editor.toggleEditMode());
+editToggle.addEventListener('click', () => editor.toggleEditMode());
+
+/* E 键切换（输入中不触发；deck-stage 的键盘导航同样跳过 contenteditable） */
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'e' || e.key === 'E') && !e.target.isContentEditable) editor.toggleEditMode();
+});
+
+/* 自动保存（防抖） + Ctrl/⌘+S 导出 */
+let saveTimer = null;
+document.addEventListener('input', () => {
+    if (!editor.isActive) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => editor.save(), 600);
+});
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        editor.save();
+        editor.exportFile();
+    }
+});
+</script>
+
+</body>
+</html>
