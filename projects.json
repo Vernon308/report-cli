@@ -1,5 +1,13 @@
 [
   {
+    "id": "multi-agent",
+    "title": "多智能体系统：有效性边界与工程实践",
+    "description": "60 分钟技术大会分享：什么时候该让 AI 组队、怎么组才不翻车——文献证据与 AgentHub 实战印证，附四步判断法与动手顺序。",
+    "path": "/multi-agent/",
+    "date": "2026-09-19",
+    "tags": ["AI", "多智能体", "技术分享"]
+  },
+  {
     "id": "proj-one",
     "title": "AI Agent 驱动项目全生命周期管理",
     "description": "从需求导入、AI 澄清、任务分解到分派与交付的全流程智能化管理方案汇报。",

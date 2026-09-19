@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多智能体系统：有效性边界与工程实践</title>
+
+<!-- 字体：Archivo Black 展示字 + Space Grotesk 拉丁正文 + Noto Sans SC 中文 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================
+   主题变量 —— Bold Signal × 邮储绿
+   改这几个变量即可整体换色
+   =========================================== */
+:root{
+  --bg-primary:#0A1B12;                       /* 深绿墨底 */
+  --bg-gradient:linear-gradient(135deg,#0A1B12 0%,#12291B 50%,#0A1B12 100%);
+  --green:#00A65E;                            /* 邮储绿 · 主强调 */
+  --green-deep:#00784A;
+  --green-soft:rgba(0,166,94,.14);
+  --gold:#E4C46E;                             /* 金 · 数据强调 */
+  --red:#E25C4A;                              /* 红 · 负向数据 */
+  --red-soft:rgba(226,92,74,.14);
+  --text-primary:#F2F1EC;
+  --text-secondary:rgba(242,241,236,.62);
+  --text-dim:rgba(242,241,236,.4);
+  --line:rgba(242,241,236,.14);
+  --card-bg:#0F2418;                          /* 内容卡片底 */
+  --on-green:#06130C;                         /* 绿卡上的深字 */
+  --font-display:'Archivo Black','Noto Sans SC',sans-serif;
+  --font-body:'Space Grotesk','Noto Sans SC',sans-serif;
+  --stage-bg:#050b08;
+  --slide-bg:var(--bg-primary);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ===========================================
+   固定 16:9 舞台（必含 viewport-base.css）
+   =========================================== */
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--stage-bg)}
+.deck-viewport{position:fixed;inset:0;overflow:hidden;background:var(--stage-bg)}
+.deck-stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;
+  transform-origin:0 0;background:var(--slide-bg)}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;display:block;
+  visibility:hidden;opacity:0;pointer-events:none;background:var(--slide-bg)}
+.slide.active,.slide.visible{visibility:visible;opacity:1;pointer-events:auto;z-index:1}
+img,video,canvas,svg{max-width:100%;max-height:100%}
+.deck-controls{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:1000}
+@media print{
+  html,body{width:1920px;height:auto;overflow:visible;background:#fff}
+  .deck-viewport{position:static;overflow:visible;background:#fff}
+  .deck-stage{position:static;width:auto;height:auto;transform:none!important;background:none}
+  .slide{position:relative;display:block!important;visibility:visible!important;opacity:1!important;
+    pointer-events:auto;width:1920px;height:1080px;break-after:page;page-break-after:always}
+  .slide:last-child{break-after:auto;page-break-after:auto}
+  .deck-controls{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.2s!important}}
+
+/* ===========================================
+   通用舞台氛围：渐变 + 微网格
+   =========================================== */
+.slide{background:var(--bg-gradient)}
+.slide::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(242,241,236,.028) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(242,241,236,.028) 1px,transparent 1px);
+  background-size:96px 96px}
+
+/* ===========================================
+   版式骨架
+   =========================================== */
+.inner{position:absolute;inset:0;padding:64px 88px 60px;display:flex;flex-direction:column}
+
+/* 顶部信息条 */
+.chrome{display:flex;justify-content:space-between;align-items:center;
+  font-size:21px;letter-spacing:.16em;color:var(--text-dim);text-transform:uppercase;
+  font-family:var(--font-body);flex-shrink:0}
+.chrome .cr-l b{color:var(--green);font-weight:700}
+.chrome .pg{font-weight:700;color:var(--text-secondary);letter-spacing:.08em}
+
+/* 五件事地图导航（第三章内容页右上角） */
+.mapnav{display:flex;gap:10px;align-items:center}
+.mapnav span{font-size:18px;letter-spacing:.1em;padding:7px 16px;border-radius:999px;
+  border:1px solid var(--line);color:var(--text-dim)}
+.mapnav span.on{background:var(--green);border-color:var(--green);color:var(--on-green);font-weight:700}
+
+/* 标题区 */
+.kicker{font-family:var(--font-body);font-size:23px;font-weight:700;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--green);margin-bottom:22px}
+h2.st{font-family:var(--font-display);font-weight:900;font-size:64px;line-height:1.16;
+  letter-spacing:.005em;color:var(--text-primary)}
+.st small{display:block;font-family:var(--font-body);font-weight:400;font-size:26px;
+  color:var(--text-secondary);margin-top:14px;letter-spacing:.02em}
+.head{margin-bottom:44px}
+
+/* 绿色主卡（Bold Signal 视觉焦点） */
+.gcard{background:var(--green);color:var(--on-green);border-radius:4px;
+  box-shadow:18px 18px 0 rgba(0,166,94,.16)}
+.gcard .gk{font-size:21px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;opacity:.72}
+
+/* 深色内容卡 */
+.dcard{background:var(--card-bg);border:1px solid var(--line);border-radius:14px}
+
+/* 数据字 */
+.num-g{color:var(--green)} .num-a{color:var(--gold)} .num-r{color:var(--red)}
+
+/* 底部洞察条 */
+.insight{display:flex;align-items:center;gap:20px;background:var(--green-soft);
+  border:1px solid rgba(0,166,94,.35);border-left:6px solid var(--green);border-radius:10px;
+  padding:24px 34px;font-size:27px;line-height:1.5;color:var(--text-primary)}
+.insight b{color:var(--green)}
+.insight.warn{background:var(--red-soft);border-color:rgba(226,92,74,.4);border-left-color:var(--red)}
+.insight.warn b{color:var(--red)}
+.insight .tag-i{flex-shrink:0;font-size:19px;font-weight:700;letter-spacing:.2em;color:var(--green);
+  text-transform:uppercase;opacity:.85}
+.insight.warn .tag-i{color:var(--red)}
+
+/* 截图 */
+.shot{border:1px solid rgba(242,241,236,.18);border-radius:14px;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);display:block}
+.cap{font-size:21px;color:var(--text-secondary);line-height:1.55}
+.cap b{color:var(--text-primary)}
+
+/* 章节隔页 */
+.div-num{font-family:var(--font-display);font-size:340px;line-height:1;color:transparent;
+  -webkit-text-stroke:3px rgba(0,166,94,.55)}
+.div-title{font-family:var(--font-display);font-size:96px;font-weight:900;color:var(--text-primary);line-height:1.15}
+.div-sub{font-size:30px;color:var(--text-secondary);margin-top:22px;line-height:1.5}
+.div-min{display:inline-block;margin-top:36px;font-size:22px;letter-spacing:.24em;color:var(--on-green);
+  background:var(--green);padding:12px 28px;border-radius:999px;font-weight:700}
+
+/* 表格 */
+table.tb{width:100%;border-collapse:collapse;font-size:26px}
+table.tb th{font-size:21px;letter-spacing:.14em;color:var(--green);text-transform:uppercase;
+  text-align:left;padding:0 26px 16px;border-bottom:2px solid rgba(0,166,94,.45)}
+table.tb td{padding:20px 26px;border-bottom:1px solid var(--line);color:var(--text-primary);line-height:1.45;vertical-align:top}
+table.tb td:first-child{font-weight:700}
+table.tb tr td .mut{color:var(--text-secondary);font-size:23px}
+
+/* 代码块 */
+.code{white-space:pre;font-family:'Space Grotesk','Noto Sans SC',monospace;background:#081209;border:1px solid rgba(0,166,94,.3);
+  border-radius:14px;padding:30px 36px;font-size:21px;line-height:1.72;color:#B8E6CF;overflow:hidden}
+.code .k{color:var(--gold)} .code .s{color:#7DD8A8} .code .c{color:var(--text-dim)}
+
+/* ===========================================
+   动画：入场 stagger（.visible 触发）
+   =========================================== */
+.reveal{opacity:0;transform:translateY(34px);
+  transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:var(--d,0s)}
+.slide.visible .reveal{opacity:1;transform:none}
+.reveal-scale{opacity:0;transform:scale(.94);
+  transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:var(--d,0s)}
+.slide.visible .reveal-scale{opacity:1;transform:none}
+
+/* ===========================================
+   每页布局细节
+   =========================================== */
+
+/* 封面 */
+.cover-top{display:flex;justify-content:space-between;align-items:center;font-size:22px;
+  letter-spacing:.16em;color:var(--text-dim);text-transform:uppercase}
+.cover-top .pg{font-weight:700;color:var(--green)}
+.cover-hero{position:absolute;left:88px;bottom:130px;width:1120px;padding:64px 72px 58px}
+.cover-hero h1{font-family:var(--font-display);font-weight:900;font-size:96px;line-height:1.1;letter-spacing:.005em}
+.cover-hero .en{display:block;font-size:26px;font-weight:500;margin-top:24px;letter-spacing:.02em;opacity:.78;font-family:var(--font-body)}
+.cover-side{position:absolute;right:88px;bottom:130px;width:560px}
+.cover-side .lbl{font-size:20px;letter-spacing:.3em;color:var(--text-dim);margin-bottom:16px;text-transform:uppercase}
+.cover-side .it{display:flex;gap:20px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)}
+.cover-side .it .n{font-family:var(--font-display);font-size:26px;color:var(--green)}
+.cover-side .it .t{font-size:27px;color:var(--text-primary);font-weight:500}
+.cover-foot{position:absolute;left:88px;top:150px;font-size:23px;color:var(--text-secondary);letter-spacing:.06em}
+
+/* 对立双卡（序章） */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;min-height:0}
+.op{border-radius:16px;padding:44px 48px;display:flex;flex-direction:column}
+.op .date{font-size:21px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:20px;font-weight:700}
+.op h3{font-family:var(--font-display);font-size:44px;line-height:1.25;margin-bottom:16px}
+.op .pos{font-size:30px;font-weight:700;margin-bottom:18px}
+.op .why{font-size:25px;line-height:1.55;opacity:.85;margin-top:auto}
+.op.no{background:var(--card-bg);border:1px solid rgba(226,92,74,.45)}
+.op.no .date{color:var(--red)} .op.no .pos{color:var(--red)} .op.no h3{color:var(--text-primary)}
+.op.yes{background:var(--green);color:var(--on-green)}
+.op.yes .date{color:rgba(6,19,12,.66)} .op.yes .pos,.op.yes h3{color:var(--on-green)}
+
+/* 全场地图 */
+.map-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;flex:1;align-content:center}
+.map-cell{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:30px 32px;position:relative}
+.map-cell .cn{font-family:var(--font-display);font-size:30px;color:var(--green);margin-bottom:12px}
+.map-cell .ct{font-size:29px;font-weight:700;color:var(--text-primary);line-height:1.3}
+.map-cell .cm{font-size:21px;color:var(--text-secondary);margin-top:10px}
+.map-cell.hot{background:var(--green);border-color:var(--green)}
+.map-cell.hot .cn{color:rgba(6,19,12,.6)} .map-cell.hot .ct{color:var(--on-green)} .map-cell.hot .cm{color:rgba(6,19,12,.7)}
+
+/* 三卡 */
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;flex:1;align-content:start}
+.c3{background:var(--card-bg);border:1px solid var(--line);border-radius:16px;padding:40px 40px 36px;display:flex;flex-direction:column}
+.c3 .ic{font-size:52px;margin-bottom:24px}
+.c3 h4{font-size:35px;font-weight:900;color:var(--text-primary);margin-bottom:8px}
+.c3 .meta{font-size:28px;font-weight:700;color:var(--green);margin-bottom:20px}
+.c3 p{font-size:24px;line-height:1.6;color:var(--text-secondary)}
+.c3 p b{color:var(--text-primary)}
+
+/* 三列硬伤 */
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:0;flex:1;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card-bg)}
+.col{padding:44px 42px;border-right:1px solid var(--line);display:flex;flex-direction:column}
+.col:last-child{border-right:none}
+.col .cn{font-family:var(--font-display);font-size:26px;color:var(--green);margin-bottom:18px}
+.col h4{font-size:38px;font-weight:900;margin-bottom:14px}
+.col .say{font-size:25px;line-height:1.55;color:var(--text-secondary)}
+.col .fx{margin-top:auto;padding-top:22px;border-top:1px dashed var(--line);font-size:23px;color:var(--gold)}
+
+/* 台阶 */
+.stairs{display:flex;align-items:flex-end;gap:22px;flex:1;padding:0 8px}
+.step{flex:1;display:flex;flex-direction:column;justify-content:flex-end}
+.step .bar{background:var(--card-bg);border:1px solid var(--line);border-radius:12px 12px 0 0;padding:26px 24px;flex-shrink:0}
+.step h5{font-size:29px;font-weight:900;margin-bottom:8px}
+.step p{font-size:21px;line-height:1.5;color:var(--text-secondary)}
+.step .lv{font-family:var(--font-display);font-size:21px;color:var(--green);margin-bottom:12px}
+.step.mas .bar{background:var(--green);border-color:var(--green)}
+.step.mas h5{color:var(--on-green)} .step.mas p{color:rgba(6,19,12,.75)} .step.mas .lv{color:rgba(6,19,12,.6)}
+.stairs-note{margin-top:30px}
+
+/* 大数据页 */
+.stat-hero{display:flex;align-items:baseline;gap:36px;flex:1;min-height:0}
+.stat-big{font-family:var(--font-display);font-size:250px;line-height:1;letter-spacing:-.01em}
+.stat-desc{font-size:34px;line-height:1.5;color:var(--text-primary);max-width:640px}
+.stat-desc .mut{display:block;font-size:24px;color:var(--text-secondary);margin-top:16px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:44px}
+.sr{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:28px 32px}
+.sr .k{font-family:var(--font-display);font-size:44px;margin-bottom:10px}
+.sr .v{font-size:23px;color:var(--text-secondary);line-height:1.5}
+
+/* 三类翻车 */
+.cat3{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;flex:1;align-content:start}
+.cat{background:var(--card-bg);border:1px solid var(--line);border-radius:16px;padding:36px 38px;display:flex;flex-direction:column}
+.cat .head-r{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px}
+.cat h4{font-size:32px;font-weight:900}
+.cat .cnt{font-family:var(--font-display);font-size:52px;color:var(--green)}
+.cat ul{list-style:none;font-size:23px;color:var(--text-secondary);line-height:1.9}
+.cat ul li::before{content:'— ';color:var(--green)}
+.cat .fix{margin-top:auto;padding-top:18px;border-top:1px dashed var(--line);font-size:23px;font-weight:700;color:var(--gold)}
+
+/* 对比大数 */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;align-content:center}
+.vs-card{border-radius:18px;padding:52px 56px}
+.vs-card .n{font-family:var(--font-display);font-size:150px;line-height:1;margin-bottom:22px}
+.vs-card .t{font-size:30px;font-weight:700;line-height:1.4}
+.vs-card .m{font-size:23px;opacity:.75;margin-top:14px;line-height:1.5}
+.vs-card.good{background:var(--green-soft);border:1px solid rgba(0,166,94,.45)}
+.vs-card.good .n{color:var(--green)}
+.vs-card.bad{background:var(--red-soft);border:1px solid rgba(226,92,74,.45)}
+.vs-card.bad .n{color:var(--red)}
+
+/* 双原则 */
+.two-col{display:grid;grid-template-columns:760px 1fr;gap:48px;flex:1;min-height:0}
+.pr-item{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:30px 34px;margin-bottom:24px}
+.pr-item .pn{font-family:var(--font-display);font-size:24px;color:var(--green);margin-bottom:10px}
+.pr-item p{font-size:26px;line-height:1.55;color:var(--text-primary)}
+.pr-item p .mut{display:block;font-size:22px;color:var(--text-secondary);margin-top:8px}
+.flap{background:var(--card-bg);border:1px solid var(--line);border-radius:16px;padding:34px 36px;display:flex;flex-direction:column}
+.flap h5{font-size:25px;font-weight:700;color:var(--gold);margin-bottom:24px;letter-spacing:.06em}
+.flap .pieces{display:flex;gap:20px;align-items:center;justify-content:center;flex:1}
+.flap .pc{border-radius:12px;padding:26px 24px;text-align:center;font-size:24px;font-weight:700;line-height:1.4}
+.flap .pc1{background:rgba(228,196,110,.16);border:1px solid rgba(228,196,110,.5);color:var(--gold)}
+.flap .pc2{background:rgba(0,166,94,.14);border:1px solid rgba(0,166,94,.5);color:#5FD8A0}
+.flap .x{font-family:var(--font-display);font-size:56px;color:var(--red)}
+.flap .say{font-size:22px;color:var(--text-secondary);text-align:center;margin-top:24px;line-height:1.5}
+
+/* 隔页 */
+.divider-wrap{flex:1;display:flex;align-items:center;gap:90px}
+.divider-left{flex-shrink:0}
+
+/* 分工页 */
+.split{display:grid;grid-template-columns:1fr 820px;gap:52px;flex:1;min-height:0;align-items:start}
+.route{display:flex;flex-direction:column;gap:20px}
+.rt{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:26px 32px}
+.rt.hl{border-color:rgba(0,166,94,.6);background:linear-gradient(90deg,rgba(0,166,94,.12),var(--card-bg))}
+.rt .rt-h{display:flex;align-items:baseline;gap:16px;margin-bottom:8px}
+.rt h4{font-size:30px;font-weight:900}
+.rt .who{font-size:20px;color:var(--green);letter-spacing:.04em}
+.rt p{font-size:23px;line-height:1.5;color:var(--text-secondary)}
+.rt p b{color:var(--text-primary)}
+
+/* 派活四件事 */
+.elems{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:30px}
+.el{background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:22px 28px;display:flex;gap:18px;align-items:baseline}
+.el .en{font-family:var(--font-display);font-size:24px;color:var(--green)}
+.el .et{font-size:27px;font-weight:700}
+.el .ed{font-size:21px;color:var(--text-secondary)}
+
+/* 双截图页 */
+.shot-duo{display:grid;grid-template-columns:1fr 1fr;gap:32px;flex:1;min-height:0;align-items:center}
+
+/* 简报三规则 */
+.rules{display:flex;flex-direction:column;gap:24px;flex:1;justify-content:center}
+.rule{display:flex;gap:30px;align-items:center;background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:30px 38px}
+.rule .rn{flex-shrink:0;font-family:var(--font-display);font-size:44px;color:var(--green);width:70px}
+.rule h5{font-size:30px;font-weight:900;margin-bottom:8px}
+.rule p{font-size:23px;color:var(--text-secondary);line-height:1.5}
+.rule p b{color:var(--text-primary)}
+
+/* 协议三层 */
+.layers{display:flex;flex-direction:column;gap:22px;flex:1;justify-content:center}
+.layer{display:grid;grid-template-columns:220px 1fr 300px;gap:34px;align-items:center;
+  background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:28px 36px}
+.layer .lname{font-family:var(--font-display);font-size:40px;color:var(--green)}
+.layer .ldesc{font-size:26px;font-weight:700}
+.layer .ldesc .mut{display:block;font-size:21px;color:var(--text-secondary);font-weight:400;margin-top:6px}
+.layer .lanalogy{font-size:22px;color:var(--gold);text-align:right;line-height:1.45}
+
+/* 六步链路 */
+.flow6{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;flex:1;align-content:center}
+.f6{background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:26px 22px;position:relative;min-height:300px}
+.f6 .fn{font-family:var(--font-display);font-size:24px;color:var(--green);margin-bottom:14px}
+.f6 h6{font-size:24px;font-weight:900;line-height:1.35;margin-bottom:10px}
+.f6 p{font-size:19px;color:var(--text-secondary);line-height:1.5}
+.f6::after{content:'→';position:absolute;right:-19px;top:46%;font-size:26px;color:var(--green);z-index:2}
+.f6:last-child::after{display:none}
+.f6.key{border-color:rgba(0,166,94,.55);background:linear-gradient(180deg,rgba(0,166,94,.1),var(--card-bg))}
+
+/* 四挑战 */
+.ch4{display:grid;grid-template-columns:1fr 1fr;gap:24px;flex:1;align-content:center}
+.ch{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:30px 36px}
+.ch h5{font-size:28px;font-weight:900;margin-bottom:10px}
+.ch h5 .no{color:var(--red);font-family:var(--font-display);font-size:24px;margin-right:14px}
+.ch p{font-size:23px;line-height:1.55;color:var(--text-secondary)}
+.ch p b{color:var(--gold);font-weight:700}
+
+/* 坑列表 */
+.pits{display:flex;flex-direction:column;gap:22px;flex:1;justify-content:center}
+.pit{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:26px 34px}
+.pit .ph{display:flex;align-items:baseline;gap:18px;margin-bottom:10px}
+.pit .pn2{font-family:var(--font-display);font-size:23px;color:var(--red)}
+.pit h5{font-size:29px;font-weight:900}
+.pit p{font-size:23px;line-height:1.55;color:var(--text-secondary)}
+.pit p b{color:var(--green)}
+
+/* 图片+列表布局 */
+.img-right{display:grid;grid-template-columns:1fr 780px;gap:52px;flex:1;min-height:0;align-items:center}
+.img-left{display:grid;grid-template-columns:880px 1fr;gap:52px;flex:1;min-height:0;align-items:center}
+
+/* 终章 */
+.judge{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;margin-bottom:30px}
+.j4{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:26px 32px}
+.j4 .jn{font-family:var(--font-display);font-size:30px;color:var(--green);margin-bottom:10px}
+.j4 h5{font-size:28px;font-weight:900;margin-bottom:8px}
+.j4 p{font-size:21px;line-height:1.5;color:var(--text-secondary)}
+.j4 p b{color:var(--gold)}
+.path{display:flex;gap:14px;align-items:center;flex-wrap:nowrap}
+.pstep{background:var(--green-soft);border:1px solid rgba(0,166,94,.4);border-radius:999px;
+  padding:12px 22px;font-size:20px;color:var(--text-primary);white-space:nowrap}
+.pstep:first-child{background:var(--green);color:var(--on-green);font-weight:700}
+.path .arr{color:var(--green);font-size:22px}
+
+/* 结束页 */
+.end-q{font-family:var(--font-display);font-size:66px;line-height:1.4;color:var(--text-primary);max-width:1600px}
+.end-q .hl{color:var(--green)}
+.end-meta{margin-top:60px;display:flex;gap:26px;align-items:center}
+.end-chip{border:1px solid var(--line);border-radius:999px;padding:14px 32px;font-size:24px;color:var(--text-secondary)}
+.end-chip.gr{background:var(--green);color:var(--on-green);font-weight:700;border-color:var(--green)}
+
+/* 播放控制 */
+.deck-controls{display:flex;gap:14px;align-items:center;background:rgba(10,27,18,.85);border:1px solid var(--line);
+  border-radius:999px;padding:8px 18px;backdrop-filter:blur(8px);
+  left:auto;right:24px;bottom:24px;transform:none}
+.deck-controls button{background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer;padding:6px 10px;font-family:var(--font-body)}
+.deck-controls button:hover{color:var(--green)}
+.deck-controls .cnt{font-size:18px;color:var(--text-dim);font-family:var(--font-body);letter-spacing:.06em}
+.progress{position:fixed;left:0;bottom:0;height:4px;background:var(--green);z-index:1001;transition:width .4s var(--ease)}
+
+/* 行内编辑 */
+.edit-hotzone{position:fixed;top:0;left:0;width:80px;height:80px;z-index:10000;cursor:pointer}
+.edit-toggle{position:fixed;top:20px;left:20px;z-index:10001;background:var(--card-bg);border:1px solid var(--line);
+  color:var(--text-secondary);border-radius:10px;padding:10px 16px;font-size:18px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s}
+.edit-toggle.show,.edit-toggle.active{opacity:1;pointer-events:auto}
+.edit-toggle.active{border-color:var(--green);color:var(--green)}
+body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offset:4px;border-radius:4px;cursor:text}
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- ============ 01 · 封面 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="cover-top reveal" style="--d:.05s"><span>技术大会 · 60 分钟分享</span><span class="pg">01 / 30</span></div>
+    <div class="cover-foot reveal" style="--d:.4s">2026.09 · 银行科技条线 · 文献答案 + 实战答案，一起讲</div>
+    <div class="gcard cover-hero reveal-scale" style="--d:.2s">
+      <div class="gk">Multi-Agent Systems</div>
+      <h1 style="margin-top:22px">多智能体系统<br>有效性边界与工程实践
+        <span class="en">When They Work, Why They Fail, and How to Build Them</span></h1>
+    </div>
+    <div class="cover-side">
+      <div class="lbl reveal" style="--d:.55s">三个关键结论</div>
+      <div class="it reveal" style="--d:.65s"><span class="n">1</span><span class="t">不是所有任务都适合组队</span></div>
+      <div class="it reveal" style="--d:.75s"><span class="n">2</span><span class="t">翻车是系统设计问题，有成熟解法</span></div>
+      <div class="it reveal" style="--d:.85s"><span class="n">3</span><span class="t">AgentHub 实战：五个文献没写的坑</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 · 序章：两种答案 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>序章</b> · PROLOGUE</span><span class="pg">02 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">2025 年 6 月</div>
+      <h2 class="st">同一周，两种答案</h2>
+    </div>
+    <div class="duo">
+      <div class="op no reveal" style="--d:.3s">
+        <div class="date">6 月 12 日 · Cognition（Devin 团队）</div>
+        <h3>《不要构建多智能体》</h3>
+        <div class="pos">核心立场：默认别做</div>
+        <div class="why">他们做的是编程——活与活之间环环相扣，拆不开。</div>
+      </div>
+      <div class="op yes reveal" style="--d:.45s">
+        <div class="date">6 月 13 日 · Anthropic</div>
+        <h3>多智能体研究系统</h3>
+        <div class="pos">性能提升 90.2%</div>
+        <div class="why">他们做的是调研——活与活之间天然能拆开。</div>
+      </div>
+    </div>
+    <div class="insight reveal" style="--d:.65s;margin-top:36px">
+      <span class="tag-i">谁对？</span>
+      <span><b>都对。</b>相隔一天、结论相反——争论把问题从"要不要做"逼到了<b>"什么任务适合、怎么做才对"</b>。这也是我们搭 AgentHub 时天天问自己的问题。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 · 全场地图 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>路线图</b> · ROADMAP</span><span class="pg">03 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">60 分钟 · 八站</div>
+      <h2 class="st">今天怎么讲</h2>
+    </div>
+    <div class="map-grid">
+      <div class="map-cell reveal" style="--d:.25s"><div class="cn">序章</div><div class="ct">两种答案</div><div class="cm">3 min</div></div>
+      <div class="map-cell reveal" style="--d:.32s"><div class="cn">01</div><div class="ct">概念校准</div><div class="cm">6 min · 什么才算多智能体</div></div>
+      <div class="map-cell reveal" style="--d:.39s"><div class="cn">02</div><div class="ct">看数据</div><div class="cm">9 min · 有效还是更差</div></div>
+      <div class="map-cell reveal" style="--d:.46s"><div class="cn">03</div><div class="ct">五件事</div><div class="cm">11 min · 分工 派活 通气 对话 验收</div></div>
+      <div class="map-cell reveal" style="--d:.53s"><div class="cn">04</div><div class="ct">生产的距离</div><div class="cm">8 min · 从能跑到敢上线</div></div>
+      <div class="map-cell hot reveal" style="--d:.6s"><div class="cn">05</div><div class="ct">五个坑</div><div class="cm">7 min · 我们自己踩的</div></div>
+      <div class="map-cell reveal" style="--d:.67s"><div class="cn">06</div><div class="ct">框架与协议</div><div class="cm">3 min · 怎么选</div></div>
+      <div class="map-cell reveal" style="--d:.74s"><div class="cn">终章</div><div class="ct">判断与顺序</div><div class="cm">3 min · 带回去就能用</div></div>
+    </div>
+    <div class="insight reveal" style="--d:.85s;margin-top:36px">
+      <span class="tag-i">双线</span>
+      <span>每个关键结论配两份材料：<b>一份文献证据</b>（实验与生产数据）+ <b>一条平台印证</b>（单点工程佐证）。方向一致时增强信心，但后者证明不了前者。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 · 隔页 01 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>第一章</b> · 6 MIN</span><span class="pg">04 / 30</span></div>
+    <div class="divider-wrap">
+      <div class="divider-left reveal" style="--d:.15s"><div class="div-num">01</div></div>
+      <div>
+        <div class="div-title reveal" style="--d:.3s">概念校准</div>
+        <div class="div-sub reveal" style="--d:.45s">先把概念说清楚：什么才算多智能体。<br>不咬文嚼字——概念不清，规则就写不出来。</div>
+        <div class="div-min reveal" style="--d:.6s">6 MIN</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 · 三个概念 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>01</b> · 概念校准</span><span class="pg">05 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">先把三个词分开</div>
+      <h2 class="st">后面才不打架</h2>
+    </div>
+    <div class="cards3">
+      <div class="c3 reveal" style="--d:.3s">
+        <div class="ic">🏭</div>
+        <h4>工作流 Workflow</h4>
+        <div class="meta">步骤事先写死</div>
+        <p>AI 按流程图走。像<b>工厂流水线</b>：每个工位干什么，是规定好的。</p>
+      </div>
+      <div class="c3 reveal" style="--d:.42s">
+        <div class="ic">🧑‍💼</div>
+        <h4>智能体 Agent</h4>
+        <div class="meta">AI 自己决定怎么干</div>
+        <p>自己决定下一步、用什么工具，干到完成为止。像<b>能独立接单的员工</b>：交代目标，他自己想办法。</p>
+      </div>
+      <div class="c3 reveal" style="--d:.54s">
+        <div class="ic">👥</div>
+        <h4>多智能体系统 MAS</h4>
+        <div class="meta">分工 + 沟通机制</div>
+        <p>多个"员工"协同干活，加一套协作机制。像<b>一个项目组</b>。</p>
+      </div>
+    </div>
+    <div class="insight reveal" style="--d:.7s;margin-top:34px">
+      <span class="tag-i">排除</span>
+      <span>把几个 AI 调用串成固定流程——那是工作流；多开几个互不通气的聊天窗口——那也不是 MAS。<b>token</b> 可粗略按"字数"理解，是 AI 的计费单位。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 · 三大硬伤 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>01</b> · 概念校准</span><span class="pg">06 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">为什么一个 AI 不够用</div>
+      <h2 class="st">三个硬伤，都是结构问题</h2>
+      <small>长任务跑到后半段"失忆"、答非所问——根源在这里，换更强的模型也治不好</small>
+    </div>
+    <div class="cols3">
+      <div class="col reveal" style="--d:.3s">
+        <div class="cn">A</div>
+        <h4>上下文爆炸</h4>
+        <div class="say">"工作记忆"有上限，长任务的中间过程全堆在里面，早期的决定被挤出去。</div>
+        <div class="fx">后果：跑到后期失忆、跑偏</div>
+      </div>
+      <div class="col reveal" style="--d:.42s">
+        <div class="cn">B</div>
+        <h4>职责混乱</h4>
+        <div class="say">让一个人同时当调研员、写手和校对。</div>
+        <div class="fx">后果：角色互相干扰，没人挑错</div>
+      </div>
+      <div class="col reveal" style="--d:.54s">
+        <div class="cn">C</div>
+        <h4>无法并发</h4>
+        <div class="say">一次只能干一件事。能同时查的五个方向，只能排队查。</div>
+        <div class="fx">后果：时间全耗在串行上</div>
+      </div>
+    </div>
+    <div class="insight reveal" style="--d:.7s;margin-top:34px">
+      <span class="tag-i">关键</span>
+      <span>A 会随模型窗口扩大而缓解；<b>"没法并行"和"没人挑错"不随模型变强消失</b>——这两条才是组队的长期理由。个体智力十万年没变，组织让能力指数增长。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 · 五个台阶 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>01</b> · 概念校准</span><span class="pg">07 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">不是一步到位</div>
+      <h2 class="st">复杂度的五个台阶</h2>
+    </div>
+    <div class="stairs">
+      <div class="step reveal" style="--d:.3s"><div class="bar" style="min-height:200px"><div class="lv">L1</div><h5>链式</h5><p>固定几步一步一步来。先写提纲，检查，再写正文。</p></div></div>
+      <div class="step reveal" style="--d:.4s"><div class="bar" style="min-height:260px"><div class="lv">L2</div><h5>路由</h5><p>先分类再分发。简单问题给小模型，省钱。</p></div></div>
+      <div class="step reveal" style="--d:.5s"><div class="bar" style="min-height:320px"><div class="lv">L3</div><h5>并行</h5><p>互不干扰的事同时做，最后汇总。三个"审查员"各查一个方面。</p></div></div>
+      <div class="step mas reveal" style="--d:.6s"><div class="bar" style="min-height:380px"><div class="lv">L4</div><h5>指挥-工人</h5><p>总指挥现场拆活、派活、汇总。改哪几个文件，看了需求才知道。</p></div></div>
+      <div class="step mas reveal" style="--d:.7s"><div class="bar" style="min-height:440px"><div class="lv">L5</div><h5>生成-评审</h5><p>一个写、一个挑错，改到通过为止。翻译、写方案。</p></div></div>
+    </div>
+    <div class="insight stairs-note reveal" style="--d:.85s">
+      <span class="tag-i">忠告</span>
+      <span>L4、L5 已是 MAS 雏形。但<b>能简单就别复杂</b>——很多应用把"单次调用 + 检索"调好就够；<b>慎用现成框架</b>——很多模式几十行原始代码就够。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 08 · 隔页 02 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>第二章</b> · 9 MIN</span><span class="pg">08 / 30</span></div>
+    <div class="divider-wrap">
+      <div class="divider-left reveal" style="--d:.15s"><div class="div-num">02</div></div>
+      <div>
+        <div class="div-title reveal" style="--d:.3s">看数据</div>
+        <div class="div-sub reveal" style="--d:.45s">什么时候有效，什么时候更差。<br>四组一手材料：好处多大 · 翻车长什么样 · 边界在哪 · 为什么翻车。</div>
+        <div class="div-min reveal" style="--d:.6s">9 MIN</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 09 · +90.2% ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>02</b> · 看数据</span><span class="pg">09 / 30</span></div>
+    <div class="stat-hero">
+      <div class="stat-big num-g reveal-scale" style="--d:.2s">+90.2%</div>
+      <div class="stat-desc reveal" style="--d:.4s">多智能体系统在研究评测上，比最强的单个 Agent 提升这么多。
+        <span class="mut">典型任务："找出标普 500 科技板块所有公司的董事会成员"——单个 AI 一个个查做不完，多个 AI 分头查就做完了。口径：Anthropic 内部评测。</span></div>
+    </div>
+    <div class="stat-row">
+      <div class="sr reveal" style="--d:.55s"><div class="k num-a">≈80%</div><div class="v">性能差距只看谁花的 token 多就能猜到——有效的原因很直白：把更多算力花在同一个问题上</div></div>
+      <div class="sr reveal" style="--d:.65s"><div class="k num-a">4× / 15×</div><div class="v">单 Agent 约为普通聊天的 4 倍 token，多智能体约 15 倍——不是免费午餐，是花钱买能力</div></div>
+      <div class="sr reveal" style="--d:.75s"><div class="k num-g">上限靠投入<br>下限靠设计</div><div class="v">token 解释了为什么"能"有效，解释不了为什么有人花 15 倍反而倒退</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 · 14 种翻车 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>02</b> · 看数据</span><span class="pg">10 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">Berkeley · 7 个框架 · 1600+ 条运行记录</div>
+      <h2 class="st">14 种翻车方式，3 大类</h2>
+    </div>
+    <div class="cat3">
+      <div class="cat reveal" style="--d:.3s">
+        <div class="head-r"><h4>系统设计缺陷</h4><div class="cnt">5</div></div>
+        <ul><li>不按要求做</li><li>忘了自己是谁</li><li>重复劳动</li><li>聊着聊着忘了前文</li><li>不知道何时该停</li></ul>
+        <div class="fix">→ 把活说清楚 · 定好停止规则</div>
+      </div>
+      <div class="cat reveal" style="--d:.42s">
+        <div class="head-r"><h4>协作失调</h4><div class="cnt">6</div></div>
+        <ul><li>有疑问不问</li><li>干着干着跑偏</li><li>发现重要信息不告诉队友</li><li>无视队友的结论</li><li>说一套做一套</li></ul>
+        <div class="fix">→ 把信息传完整</div>
+      </div>
+      <div class="cat reveal" style="--d:.54s">
+        <div class="head-r"><h4>缺少验收</h4><div class="cnt">3</div></div>
+        <ul><li>没做完就交差</li><li>交差不检查</li><li>检查本身查错了</li></ul>
+        <div class="fix">→ 做完必须验收</div>
+      </div>
+    </div>
+    <div class="insight reveal" style="--d:.7s;margin-top:34px">
+      <span class="tag-i">好消息</span>
+      <span>翻车大多<b>不是 AI 笨，是系统设计问题</b>；研究者修提示词、补验收后成功率明显提升。<b>能被命名的坑，就能被填上。</b>右列是解法地图，第三、四章逐条讲。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11 · -70% ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>02</b> · 看数据</span><span class="pg">11 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">Google / MIT · 260 配置 × 6 基准 × 5 架构 × 3 模型家族</div>
+      <h2 class="st">架构选错，比不做更糟</h2>
+      <small>目前最系统的对照实验：其他条件全部统一，只看架构差异</small>
+    </div>
+    <div class="vs">
+      <div class="vs-card good reveal" style="--d:.3s">
+        <div class="n">+80.8%</div>
+        <div class="t">能拆开的金融推理任务，组队大幅提升</div>
+        <div class="m">活与活互不等待，分头干、汇总——收益为正</div>
+      </div>
+      <div class="vs-card bad reveal" style="--d:.45s">
+        <div class="n">−70.0%</div>
+        <div class="t">环环相扣的顺序规划任务，组队大幅倒退</div>
+        <div class="m">沟通开销随耦合度非线性上涨，吞掉全部产出还倒贴</div>
+      </div>
+    </div>
+    <div class="insight warn reveal" style="--d:.65s;margin-top:36px">
+      <span class="tag-i">记住</span>
+      <span><b>负七十——选错架构比不做更糟。</b>另两条发现：模型越强，组队相对收益越小；没有独立检查环节的架构，错误会一路传下去。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12 · Flappy Bird 两条原则 + 判据 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>02</b> · 看数据</span><span class="pg">12 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">Cognition 把机理讲透了</div>
+      <h2 class="st">为什么会翻车：两条原则</h2>
+    </div>
+    <div class="two-col">
+      <div class="flap reveal" style="--d:.3s">
+        <h5>案例：把"做 Flappy Bird"拆给两个子 Agent</h5>
+        <div class="pieces">
+          <div class="pc pc1">子任务①「背景」<br>画成了马里奥风</div>
+          <div class="x">✕</div>
+          <div class="pc pc2">子任务②「小鸟」<br>根本不像游戏素材</div>
+        </div>
+        <div class="say">各自在互相看不见的地方决定了风格——合并时必然打架，没法拼到一起。</div>
+      </div>
+      <div>
+        <div class="pr-item reveal" style="--d:.45s">
+          <div class="pn">原则 1</div>
+          <p>信息要传<b>完整的记录</b>，不是转述几句话。
+            <span class="mut">只告诉同事"做个背景"，他当然按自己的想象做。</span></p>
+        </div>
+        <div class="pr-item reveal" style="--d:.57s">
+          <div class="pn">原则 2</div>
+          <p>每个行动背后都有<b>没明说的决定</b>。
+            <span class="mut">所以 Cognition 建议：默认单干按顺序来；活太长就把"之前做过的决定"压缩传递下去。</span></p>
+        </div>
+      </div>
+    </div>
+    <div class="gcard reveal" style="--d:.72s;margin-top:34px;padding:32px 44px;display:flex;gap:28px;align-items:center">
+      <div class="gk" style="flex-shrink:0">一句话判据</div>
+      <div style="font-size:28px;font-weight:700;line-height:1.45">核心变量是<b>耦合度</b>：能分给几个人同时干、互相不等对方 → 收益为正；环环相扣 → 收益为负。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 13 · 隔页 03 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>第三章</b> · 11 MIN</span><span class="pg">13 / 30</span></div>
+    <div class="divider-wrap">
+      <div class="divider-left reveal" style="--d:.15s"><div class="div-num">03</div></div>
+      <div>
+        <div class="div-title reveal" style="--d:.3s">组队要解决的五件事</div>
+        <div class="div-sub reveal" style="--d:.45s">谁听谁的 · 活怎么派 · 信息怎么给 · 话怎么说 · 活怎么验。<br>每件事两遍讲：先看论文怎么说，再看我们怎么落地。</div>
+        <div style="display:flex;gap:14px;margin-top:40px" class="reveal" >
+          <div class="div-min" style="margin-top:0">分工</div>
+          <div class="div-min" style="margin-top:0;background:transparent;color:var(--green);border:2px solid var(--green)">派活</div>
+          <div class="div-min" style="margin-top:0;background:transparent;color:var(--green);border:2px solid var(--green)">通气</div>
+          <div class="div-min" style="margin-top:0;background:transparent;color:var(--green);border:2px solid var(--green)">对话</div>
+          <div class="div-min" style="margin-top:0;background:transparent;color:var(--green);border:2px solid var(--green)">验收</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 14 · ①分工 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s">
+      <span class="cr-l"><b>03</b> · 五件事 ①</span>
+      <nav class="mapnav"><span class="on">分工</span><span>派活</span><span>通气</span><span>对话</span><span>验收</span></nav>
+      <span class="pg">14 / 30</span>
+    </div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">谁听谁的</div>
+      <h2 class="st">分工结构：三条路线</h2>
+    </div>
+    <div class="split">
+      <div class="route">
+        <div class="rt hl reveal" style="--d:.3s">
+          <div class="rt-h"><h4>中心化</h4><span class="who">Anthropic · OpenAI Manager · AgentHub</span></div>
+          <p>一个"总指挥"统一拆活、派活、收结果。<b>好管理、好验收</b>；总指挥是瓶颈。</p>
+        </div>
+        <div class="rt reveal" style="--d:.42s">
+          <div class="rt-h"><h4>去中心化</h4><span class="who">客服"转接"模式</span></div>
+          <p>几个 AI 平级，谁擅长谁接。<b>对话场景自然</b>；转接条件写不好会来回踢皮球。</p>
+        </div>
+        <div class="rt reveal" style="--d:.54s">
+          <div class="rt-h"><h4>混合</h4><span class="who">Claude Code · 大型团队</span></div>
+          <p>总指挥管大方向，小组内部自治。<b>适合大团队</b>；层级多了会慢。</p>
+        </div>
+        <div class="insight reveal" style="--d:.68s;margin-top:8px">
+          <span class="tag-i">我们选</span>
+          <span><b>中心化 + 关键环节人点头。</b>涉及钱和写操作，计划是天然的审批点——去中心化想加审批，都不知道该在哪拦。</span>
+        </div>
+      </div>
+      <div class="reveal-scale" style="--d:.5s">
+        <img src="assert/deck/6.png" alt="AgentHub Agents 角色库" class="shot" style="width:100%">
+        <div class="cap" style="margin-top:18px"><b>AgentHub 的角色库</b>：Orchestrator（总指挥）+ 产品经理 / 前端工程师 / Reviewer / UI 设计师——中心化分工的真实形态。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 15 · ②派活 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s">
+      <span class="cr-l"><b>03</b> · 五件事 ②</span>
+      <nav class="mapnav"><span>分工</span><span class="on">派活</span><span>通气</span><span>对话</span><span>验收</span></nav>
+      <span class="pg">15 / 30</span>
+    </div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">把"说清楚"变成格式</div>
+      <h2 class="st">派活必须说清四件事</h2>
+      <small>Anthropic 的反例：只说"研究一下半导体短缺"→ 两个子 Agent 重复查今年的供应链，一个跑去看 2021 年旧闻</small>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 820px;gap:52px;flex:1;align-items:start">
+      <div>
+        <div class="elems">
+          <div class="el reveal" style="--d:.3s"><span class="en">01</span><div><div class="et">干什么</div><div class="ed">任务目标说完整</div></div></div>
+          <div class="el reveal" style="--d:.38s"><span class="en">02</span><div><div class="et">交什么样</div><div class="ed">expectedOutputs 验收条件</div></div></div>
+          <div class="el reveal" style="--d:.46s"><span class="en">03</span><div><div class="et">用什么资料</div><div class="ed">inputs 上游产出</div></div></div>
+          <div class="el reveal" style="--d:.54s"><span class="en">04</span><div><div class="et">别碰什么</div><div class="ed">constraints 边界约束</div></div></div>
+        </div>
+        <div class="insight reveal" style="--d:.66s">
+          <span class="tag-i">给刻度</span>
+          <span>AI 自己不会掂量花多大力气，必须给数：<b>简单查询 1 个 Agent（3-10 次工具调用）· 对比类 2-4 个 · 复杂调研 10 个以上且分工明确。</b></span>
+        </div>
+      </div>
+      <div class="reveal-scale" style="--d:.5s">
+        <div class="code">
+<span class="c">// AgentHub「派单」工具的真实格式（节选）</span>
+{
+  <span class="k">"reasoning"</span>: <span class="s">"为什么这样拆"</span>,
+  <span class="k">"tasks"</span>: [{
+    <span class="k">"id"</span>: <span class="s">"t1"</span>, <span class="k">"agentId"</span>: <span class="s">"谁干"</span>,
+    <span class="k">"task"</span>: <span class="s">"干什么"</span>,
+    <span class="k">"dependsOn"</span>: [<span class="s">"t0"</span>],
+    <span class="k">"inputs"</span>: [<span class="s">"上游哪个产出"</span>],
+    <span class="k">"expectedOutputs"</span>: [{<span class="k">"outputKey"</span>: <span class="s">"prd"</span>}],
+    <span class="k">"constraints"</span>: [<span class="s">"范围仅限订单模块"</span>,
+                   <span class="s">"不许改公共组件"</span>]
+  }]
+}
+<span class="c">// 一张系统能检查的"派工单"</span></div>
+        <div class="cap" style="margin-top:18px">四要素从"提醒 AI 注意"变成了<b>系统能检查的格式</b>。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 16 · 派活落地：先审批 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s">
+      <span class="cr-l"><b>03</b> · 五件事 ②</span>
+      <nav class="mapnav"><span>分工</span><span class="on">派活</span><span>通气</span><span>对话</span><span>验收</span></nav>
+      <span class="pg">16 / 30</span>
+    </div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">AgentHub 落地</div>
+      <h2 class="st">批准前无动作：机制上掐断，不靠自觉</h2>
+    </div>
+    <div class="img-left">
+      <div class="reveal-scale" style="--d:.3s">
+        <img src="assert/deck/2.png" alt="AgentHub 计划待确认" class="shot" style="width:100%">
+      </div>
+      <div>
+        <div class="pr-item reveal" style="--d:.45s">
+          <div class="pn">计划审批</div>
+          <p>计划生成后<b>先停下来等人确认</b>——任务卡带产出要求、依赖关系、验收条件，拒绝或执行在人手里。</p>
+        </div>
+        <div class="pr-item reveal" style="--d:.57s">
+          <div class="pn">确定性校验</div>
+          <p>AI 生成的派工单，系统用代码逐条校验：<b>编号唯一 · 不自依赖 · 无循环依赖 · 执行人在场</b>。
+            <span class="mut">规则都不复杂，但少一条，执行阶段就会用更贵的方式爆掉。</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 17 · ③通气 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s">
+      <span class="cr-l"><b>03</b> · 五件事 ③</span>
+      <nav class="mapnav"><span>分工</span><span>派活</span><span class="on">通气</span><span>对话</span><span>验收</span></nav>
+      <span class="pg">17 / 30</span>
+    </div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">给多少背景，是个精细活</div>
+      <h2 class="st">子 Agent 上岗前的"入职简报"</h2>
+      <small>收到的不是群聊全部历史——每条规则都是踩坑踩出来的</small>
+    </div>
+    <div class="rules">
+      <div class="rule reveal" style="--d:.3s"><div class="rn">1</div><div><h5>消息只留最近 5 条 + 置顶</h5><p>再多就是干扰。</p></div></div>
+      <div class="rule reveal" style="--d:.42s"><div class="rn">2</div><div><h5>依赖链上的上游产物 → 给摘要，全文随取</h5><p>专防"发现重要信息不告诉队友"；全文塞进简报会把工作记忆撑爆——需要全文自己调工具取。</p></div></div>
+      <div class="rule reveal" style="--d:.54s"><div class="rn">3</div><div><h5>其它产物 → 只给标题</h5><p>知道存在就行，要用再取。裁的是<b>噪音</b>，不是<b>决定</b>——上游产物和关键决定全文随取随有。</p></div></div>
+    </div>
+    <div class="insight reveal" style="--d:.7s;margin-top:32px">
+      <span class="tag-i">类比</span>
+      <span>像带新同事：给他<b>一页纸简报 + 关键文档清单</b>，而不是把公司十年邮件全转发给他。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 18 · ④对话 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s">
+      <span class="cr-l"><b>03</b> · 五件事 ④</span>
+      <nav class="mapnav"><span>分工</span><span>派活</span><span>通气</span><span class="on">对话</span><span>验收</span></nav>
+      <span class="pg">18 / 30</span>
+    </div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">行业已经有"普通话"了</div>
+      <h2 class="st">协议分层：连工具 · 连 AI · 连人</h2>
+    </div>
+    <div class="layers">
+      <div class="layer reveal" style="--d:.3s">
+        <div class="lname">MCP</div>
+        <div class="ldesc">AI 连工具<span class="mut">一个标准，处处能用</span></div>
+        <div class="lanalogy">像 USB 接口</div>
+      </div>
+      <div class="layer reveal" style="--d:.42s">
+        <div class="lname">A2A</div>
+        <div class="ldesc">AI 连 AI<span class="mut">v1.0 · 150+ 组织支持（2026-04）</span></div>
+        <div class="lanalogy">对方是黑盒：能合作<br>不用给他看账本</div>
+      </div>
+      <div class="layer reveal" style="--d:.54s">
+        <div class="lname">AG-UI</div>
+        <div class="ldesc">AI 连人<span class="mut">把过程和结果呈现给用户</span></div>
+        <div class="lanalogy">一个界面看到<br>所有 Agent 实时状态</div>
+      </div>
+    </div>
+    <div class="insight reveal" style="--d:.7s;margin-top:32px">
+      <span class="tag-i">共识</span>
+      <span>Agent 之间用<b>异步消息</b>（留字条，不当面喊话）；汇报用<b>结构化格式</b>（填表，不写小作文）。A2A 的黑盒设计，正是跨公司、跨部门协作的信任基础。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 19 · ⑤验收 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s">
+      <span class="cr-l"><b>03</b> · 五件事 ⑤</span>
+      <nav class="mapnav"><span>分工</span><span>派活</span><span>通气</span><span>对话</span><span class="on">验收</span></nav>
+      <span class="pg">19 / 30</span>
+    </div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">Google 实验：没有独立检查，错误一路传下去</div>
+      <h2 class="st">"做完了"三个字不算数</h2>
+    </div>
+    <div class="img-left">
+      <div class="reveal-scale" style="--d:.3s">
+        <img src="assert/deck/3.png" alt="AgentHub 完工单验收" class="shot" style="width:100%">
+      </div>
+      <div>
+        <div class="pr-item reveal" style="--d:.45s">
+          <div class="pn">完工单 report_task_result</div>
+          <p>状态写"完成"<b>且验收条件逐条通过</b>，才算完成；没填单、报失败、任何一条没过——一律按失败处理。
+            <span class="mut">截图：产品经理产出 PRD 后，逐条核对验收标准，全部打勾才上报。</span></p>
+        </div>
+        <div class="pr-item reveal" style="--d:.57s">
+          <div class="pn">为什么</div>
+          <p>没有这张单子，总指挥汇总的就是<b>一堆半成品</b>。验收只看最终结果对不对，不纠结过程。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 20 · 隔页 04 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>第四章</b> · 8 MIN</span><span class="pg">20 / 30</span></div>
+    <div class="divider-wrap">
+      <div class="divider-left reveal" style="--d:.15s"><div class="div-num">04</div></div>
+      <div>
+        <div class="div-title reveal" style="--d:.3s">生产的距离</div>
+        <div class="div-sub reveal" style="--d:.45s">从能跑到敢上线，还差哪些工程。<br>演示能跑，和敢让它碰生产数据，中间隔着这一章。</div>
+        <div class="div-min reveal" style="--d:.6s">8 MIN</div>
+      </div>
+    </div>
+    <div class="insight reveal" style="--d:.75s">
+      <span class="tag-i">引言</span>
+      <span>"最后一公里往往是旅程的大半。" —— Anthropic</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 21 · 链路六步 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>04</b> · 生产的距离</span><span class="pg">21 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">以 Anthropic 调研系统为例</div>
+      <h2 class="st">一个生产级系统的完整链路</h2>
+    </div>
+    <div class="flow6">
+      <div class="f6 reveal" style="--d:.25s"><div class="fn">1</div><h6>主研究员定策略</h6><p>计划写到外部存储，防工作记忆超限丢失</p></div>
+      <div class="f6 reveal" style="--d:.33s"><div class="fn">2</div><h6>派子 Agent 分头搜</h6><p>典型 3-5 个，超复杂可到 10 个以上</p></div>
+      <div class="f6 key reveal" style="--d:.41s"><div class="fn">3</div><h6>智能过滤器</h6><p>边搜边评估质量，只把精华带回来</p></div>
+      <div class="f6 reveal" style="--d:.49s"><div class="fn">4</div><h6>汇总，不够再派人</h6><p>主研究员判断材料是否充分</p></div>
+      <div class="f6 key reveal" style="--d:.57s"><div class="fn">5</div><h6>独立引用核查员</h6><p>逐条核对出处，独立于写报告的人</p></div>
+      <div class="f6 reveal" style="--d:.65s"><div class="fn">6</div><h6>带来源的报告</h6><p>输出标注来源，可追溯</p></div>
+    </div>
+    <div class="insight reveal" style="--d:.8s;margin-top:36px">
+      <span class="tag-i">速度</span>
+      <span>两层并行：主研究员同时派多人，每人同时调多个工具。复杂调研时间<b>最多省 90%</b>——从几小时压到几分钟。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 22 · 四挑战 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>04</b> · 生产的距离</span><span class="pg">22 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">可靠性</div>
+      <h2 class="st">四个上线级挑战</h2>
+    </div>
+    <div class="ch4">
+      <div class="ch reveal" style="--d:.3s"><h5><span class="no">01</span>小错会滚雪球</h5><p>连着几十步，一步错后面全歪 → <b>断点续跑 + 存档点</b>；还有招反直觉的：告诉 AI"这工具坏了"，让它自己绕过去。</p></div>
+      <div class="ch reveal" style="--d:.4s"><h5><span class="no">02</span>老办法调不了新问题</h5><p>同样指令每次表现可能不同 → <b>全程留痕 tracing</b>：记"做了什么决定"，不记聊天内容——能排查又保护隐私。</p></div>
+      <div class="ch reveal" style="--d:.5s"><h5><span class="no">03</span>不能停机升级</h5><p>系统里随时有正在跑的任务 → <b>彩虹部署</b>：新旧版本同时跑，流量慢慢切。</p></div>
+      <div class="ch reveal" style="--d:.6s"><h5><span class="no">04</span>排队等待有瓶颈</h5><p>总指挥等一拨人全干完才能继续 → 方向是<b>异步执行</b>，协调难度更大，是行业下一块硬骨头。</p></div>
+    </div>
+    <div class="insight reveal" style="--d:.75s;margin-top:34px">
+      <span class="tag-i">实战</span>
+      <span>AgentHub：按依赖排队 + 同批并行，<b>全局并行上限实测为 4</b>——再大，几个 AI 抢资源的抖动就吃掉并行省的时间。像厨房：同时炒 4 个菜刚好，8 个就开始糊。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 23 · 成本的账 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>04</b> · 生产的距离</span><span class="pg">23 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">上线前就要算的账</div>
+      <h2 class="st">成本：设计阶段摆上桌面</h2>
+    </div>
+    <div class="stat-row" style="margin-top:0;flex:1;align-content:center">
+      <div class="sr reveal" style="--d:.3s"><div class="k num-a">15× → 3~4×</div><div class="v">对聊天是 15 倍 token；定红线换算成对<b>单干 3-4 倍</b>的口径——别拿 15 倍吓自己。派活刻度是最直接的阀门：小活不派大队</div></div>
+      <div class="sr reveal" style="--d:.42s"><div class="k num-g">≈ 1/10</div><div class="v">Claude Code 让子 Agent 复用父 Agent 的"前文缓存"——复印材料时前半本一样就不重印。<b>便宜九成，就敢更频繁派活</b></div></div>
+      <div class="sr reveal" style="--d:.54s"><div class="k num-g">−40%</div><div class="v">把工具说明书写清楚，任务时间直降四成——AI 纠错也是要花 token 的</div></div>
+    </div>
+    <div class="insight reveal" style="--d:.7s">
+      <span class="tag-i">记账</span>
+      <span>AgentHub 把每次运行的<b>输入 / 输出 / 缓存 token 分开记账</b>——没有这本账，"成本不许超过单干两倍"这条红线根本无从检查。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 24 · 第五章 opener + 4.png ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>第五章</b> · 7 MIN</span><span class="pg">24 / 30</span></div>
+    <div class="img-left" style="grid-template-columns:960px 1fr">
+      <div class="reveal-scale" style="--d:.3s">
+        <img src="assert/deck/4.png" alt="AgentHub 交付总结" class="shot" style="width:100%">
+      </div>
+      <div>
+        <div class="div-num reveal" style="--d:.15s;font-size:200px">05</div>
+        <div class="div-sub reveal" style="--d:.3s;font-size:28px">这一章全是自己的。<b style="color:var(--text-primary)">AgentHub</b>：我们自建的多智能体协作平台，形态像群聊——Agent 是群成员，总指挥是群里的项目经理。</div>
+        <div class="cap reveal" style="--d:.5s;margin-top:26px">一次实跑交付：<b>产品经理出 PRD（10 项验收标准）→ 前端工程师实现记账 App（8 项功能逐条打勾）</b>。文献的结论在搭建中一条条被复现印证，但真正长记性的是五个坑。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 25 · 坑一~三 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>05</b> · 五个坑 · 上</span><span class="pg">25 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">文献没告诉我们的</div>
+      <h2 class="st">五个坑（上）</h2>
+    </div>
+    <div class="img-right">
+      <div class="pits" style="justify-content:flex-start">
+        <div class="pit reveal" style="--d:.3s">
+          <div class="ph"><span class="pn2">坑一</span><h5>AI 派单会漏写依赖关系</h5></div>
+          <p>提示词反复强调没用——不是态度问题，是生成的不确定性。解法：<b>确定性代码兜底</b>，从任务顺序和文本信号自动补全。<b>认知：AI 的输出永远当草稿，不当真相。</b></p>
+        </div>
+        <div class="pit reveal" style="--d:.42s">
+          <div class="ph"><span class="pn2">坑二</span><h5>规定了格式，AI 照样写歪</h5></div>
+          <p>有时这种结构、有时那种、有时干脆裸文本。解法：入口做兼容，几种形态都接受、自动归一。<b>认知：对 AI 的输入容错要比对人更宽——宽进严出。</b></p>
+        </div>
+        <div class="pit reveal" style="--d:.54s">
+          <div class="ph"><span class="pn2">坑三</span><h5>并行改同一个文件，只能提醒不能代劳</h5></div>
+          <p>系统检测并报告冲突，但<b>不自动合并</b>——合错了比冲突更难查。<b>认知：先让它可见。可见的问题人能处理，看不见的问题才是事故。</b></p>
+        </div>
+      </div>
+      <div class="reveal-scale" style="--d:.5s">
+        <img src="assert/deck/5.png" alt="AgentHub 产物库" class="shot" style="width:100%">
+        <div class="cap" style="margin-top:18px"><b>产物独立生命周期</b>：PRD 与 App 各自成版、可单独浏览——坑二的"格式归一"就发生在产物入口。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 26 · 坑四~五 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>05</b> · 五个坑 · 下</span><span class="pg">26 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">文献没告诉我们的</div>
+      <h2 class="st">五个坑（下）</h2>
+    </div>
+    <div class="img-right">
+      <div class="pits" style="justify-content:center">
+        <div class="pit reveal" style="--d:.3s">
+          <div class="ph"><span class="pn2">坑四</span><h5>"我做完了"没有意义</h5></div>
+          <p>早期子 Agent 说一句完成，总指挥就采信，汇总频繁拿到半成品。加上<b>完工单 + 逐条验收</b>后彻底改变。<b>认知：验收标准不是流程装饰，是协作协议的一部分。</b></p>
+        </div>
+        <div class="pit reveal" style="--d:.45s">
+          <div class="ph"><span class="pn2">坑五</span><h5>审批不是在界面上加个按钮</h5></div>
+          <p>第一版就是个确认框，拦不住：用户还没看完计划，执行消息已经刷出来了。真解法在机制层：<b>系统看到"派单"动作，直接停止接收后续输出</b>。<b>认知：留人把关是架构属性，不是界面属性。</b></p>
+        </div>
+      </div>
+      <div class="reveal-scale" style="--d:.5s">
+        <img src="assert/deck/1.png" alt="AgentHub 主动向用户确认" class="shot" style="width:100%">
+        <div class="cap" style="margin-top:18px"><b>机制层面留人把关</b>：Orchestrator 拆活前主动停下来，向用户逐项确认——确认不完，不许动工。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 27 · 对照表 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>05</b> · 实战印证</span><span class="pg">27 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">一页讲完的版本</div>
+      <h2 class="st">文献说 ↔ 我们验证到</h2>
+    </div>
+    <div style="flex:1;display:flex;align-items:center">
+      <table class="tb reveal" style="--d:.3s">
+        <tr><th style="width:40%">文献说</th><th>我们验证到</th></tr>
+        <tr class="reveal" style="--d:.4s"><td>派活要给明确边界</td><td>派工单里的产出要求、依赖字段，就是边界的具体形态</td></tr>
+        <tr class="reveal" style="--d:.48s"><td>"信息截留"是高频翻车</td><td>简报里只注入依赖链上的上游产物</td></tr>
+        <tr class="reveal" style="--d:.56s"><td>独立检查抑制错误传播</td><td>完工单 + 逐条验收，前置把关</td></tr>
+        <tr class="reveal" style="--d:.64s"><td>协调有开销</td><td>并行上限实测到 4，再大反而慢</td></tr>
+        <tr class="reveal" style="--d:.72s"><td>成本要可计量</td><td>输入 / 输出 / 缓存分开记账，红线才检查得了</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 28 · 第六章框架 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>第六章</b> · 3 MIN</span><span class="pg">28 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">怎么选</div>
+      <h2 class="st">框架会洗牌，协议和方法才是长期资产</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:48px;flex:1;align-items:start">
+      <table class="tb reveal" style="--d:.3s;font-size:24px">
+        <tr><th>框架</th><th>适合谁</th></tr>
+        <tr class="reveal" style="--d:.38s"><td>LangGraph</td><td><span class="mut">流程图式编排，生态最大——要精细控制流程的团队</span></td></tr>
+        <tr class="reveal" style="--d:.44s"><td>CrewAI</td><td><span class="mut">角色扮演式，上手快——快速验证想法</span></td></tr>
+        <tr class="reveal" style="--d:.5s"><td>OpenAI Agents SDK / Google ADK</td><td><span class="mut">各自生态，ADK 与 A2A 原生集成</span></td></tr>
+        <tr class="reveal" style="--d:.56s"><td>Microsoft Agent Framework</td><td><span class="mut">两老牌框架合并，2026-04 正式版——.NET/Python 企业级</span></td></tr>
+        <tr class="reveal" style="--d:.62s"><td>AgentScope（阿里开源）</td><td><span class="mut">Java，企业级扩展——Java 技术栈</span></td></tr>
+      </table>
+      <div>
+        <div class="pr-item reveal" style="--d:.5s">
+          <div class="pn">方法论</div>
+          <p>先用<b>原始接口</b>把模式自己写一遍（很多几十行代码），先把单个 Agent 调到位，<b>撞到结构墙再考虑组队</b>。</p>
+        </div>
+        <div class="pr-item reveal" style="--d:.62s">
+          <div class="pn">金融同业参照</div>
+          <p>浦发 2500+ 智能体、农行"一明"协同。红线做法：<b>资金路径中心化 + 人工审批 + 防重</b>；后台先行、面客审慎；事件溯源，每步可审计。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 29 · 终章 ============ -->
+<section class="slide">
+  <div class="inner">
+    <div class="chrome reveal" style="--d:.05s"><span class="cr-l"><b>终章</b> · 带回去</span><span class="pg">29 / 30</span></div>
+    <div class="head reveal" style="--d:.15s">
+      <div class="kicker">当场能算</div>
+      <h2 class="st">四步判断法：该不该组队</h2>
+    </div>
+    <div class="judge">
+      <div class="j4 reveal" style="--d:.3s"><div class="jn">1</div><h5>单干榨干了吗</h5><p>没撞墙别组队。撞墙信号：<b>提示词里全是分支；工具职责重叠</b>（15 个清晰可控，10 个重叠失控）</p></div>
+      <div class="j4 reveal" style="--d:.4s"><div class="jn">2</div><h5>活能拆开吗</h5><p>几部分<b>互不干扰、能同时干</b>才值得拆；环环相扣就留在单线程</p></div>
+      <div class="j4 reveal" style="--d:.5s"><div class="jn">3</div><h5>门槛过了吗</h5><p>单干成功率先到 <b>80%</b>；组队完成率至少高 <b>5 个点</b>；成本红线按场景定（文献 3-4 倍，我们有缓存定 2 倍内）</p></div>
+      <div class="j4 reveal" style="--d:.6s"><div class="jn">4</div><h5>验收进架构了吗</h5><p><b>独立检查、写评分离</b>，从第一天就放进去</p></div>
+    </div>
+    <div class="reveal" style="--d:.75s">
+      <div class="lbl" style="font-size:20px;letter-spacing:.28em;color:var(--text-dim);margin-bottom:16px;text-transform:uppercase">动手顺序 · 每步都有产出</div>
+      <div class="path">
+        <span class="pstep">单 Agent + 原始接口</span><span class="arr">→</span>
+        <span class="pstep">20 条真实问题建评测</span><span class="arr">→</span>
+        <span class="pstep">总指挥 + 计划审批</span><span class="arr">→</span>
+        <span class="pstep">任务契约</span><span class="arr">→</span>
+        <span class="pstep">并行上限 + 失败规则</span><span class="arr">→</span>
+        <span class="pstep">冲突检测 · 记账 · 留痕</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 30 · 结束页 ============ -->
+<section class="slide">
+  <div class="inner" style="justify-content:center">
+    <div class="chrome reveal" style="--d:.05s;position:absolute;top:64px;left:88px;right:88px"><span class="cr-l"><b>Q&amp;A</b> · 10 MIN</span><span class="pg">30 / 30</span></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+      <div class="kicker reveal" style="--d:.15s">留一个开放问题</div>
+      <div class="end-q reveal" style="--d:.3s">如果你的团队明天多出<span class="hl">五个不知疲倦的数字同事</span>，你第一件事会教它们什么？</div>
+      <div class="end-meta">
+        <div class="end-chip gr reveal" style="--d:.5s">谢谢 · Q&amp;A</div>
+        <div class="end-chip reveal" style="--d:.6s">+90.2% 与 −70% 之间，是设计</div>
+        <div class="end-chip reveal" style="--d:.7s">AgentHub · 银行科技条线</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<!-- 播放控制 + 进度 -->
+<div class="deck-controls">
+  <button id="btnPrev" title="上一页（←）">←</button>
+  <span class="cnt" id="pageCnt">1 / 30</span>
+  <button id="btnNext" title="下一页（→ / 空格）">→</button>
+  <button id="btnEdit" title="编辑模式（E）">✏️</button>
+  <button id="btnSave" title="导出（Ctrl+S）">💾</button>
+</div>
+<div class="progress" id="progress" style="width:0"></div>
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle">✏️ 编辑模式</button>
+
+<script>
+/* ===========================================
+   幻灯片控制器：缩放 / 键盘 / 触摸 / 滚轮
+   =========================================== */
+class SlidePresentation {
+  constructor() {
+    this.slides = document.querySelectorAll('.slide');
+    this.currentSlide = 0;
+    this.stage = document.getElementById('deckStage');
+    this.setupStageScale();
+    this.setupKeyboardNav();
+    this.setupTouchNav();
+    this.setupWheelNav();
+    this.showSlide(0);
+  }
+  /* 整个 1920×1080 舞台等比缩放并居中 */
+  setupStageScale() {
+    const scale = () => {
+      const f = Math.min(innerWidth / 1920, innerHeight / 1080);
+      const x = (innerWidth - 1920 * f) / 2;
+      const y = (innerHeight - 1080 * f) / 2;
+      this.stage.style.transform = `translate(${x}px, ${y}px) scale(${f})`;
+    };
+    scale();
+    addEventListener('resize', scale);
+  }
+  setupKeyboardNav() {
+    document.addEventListener('keydown', (e) => {
+      if (e.target.getAttribute && e.target.getAttribute('contenteditable') !== null) return;
+      if (['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)) { e.preventDefault(); this.next(); }
+      else if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key)) { e.preventDefault(); this.prev(); }
+      else if (e.key === 'Home') this.showSlide(0);
+      else if (e.key === 'End') this.showSlide(this.slides.length - 1);
+    });
+  }
+  setupTouchNav() {
+    let sx = 0, sy = 0;
+    addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+    addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) dx < 0 ? this.next() : this.prev();
+    }, {passive:true});
+  }
+  setupWheelNav() {
+    let lock = false;
+    addEventListener('wheel', (e) => {
+      if (lock || Math.abs(e.deltaY) < 30) return;
+      lock = true; setTimeout(() => lock = false, 700);
+      e.deltaY > 0 ? this.next() : this.prev();
+    }, {passive:true});
+  }
+  next() { this.showSlide(this.currentSlide + 1); }
+  prev() { this.showSlide(this.currentSlide - 1); }
+  showSlide(i) {
+    this.currentSlide = Math.max(0, Math.min(i, this.slides.length - 1));
+    this.slides.forEach((s, idx) => {
+      s.classList.toggle('active', idx === this.currentSlide);
+      s.classList.toggle('visible', idx === this.currentSlide);
+    });
+    document.getElementById('pageCnt').textContent = `${this.currentSlide + 1} / ${this.slides.length}`;
+    document.getElementById('progress').style.width = `${((this.currentSlide + 1) / this.slides.length) * 100}%`;
+  }
+}
+
+/* ===========================================
+   行内编辑：悬停热区 / E 键开关，Ctrl+S 导出
+   =========================================== */
+class InlineEditor {
+  constructor(presentation) {
+    this.pres = presentation;
+    this.isActive = false;
+    this.bindToggle();
+    this.bindHotzone();
+    this.bindSave();
+    this.restore();
+  }
+  selectors() {
+    return '.kicker,.st,.st small,.gk,.cover-hero h1,.cover-side .t,.cover-foot,.op .date,.op h3,.op .pos,.op .why,' +
+      '.map-cell .ct,.map-cell .cm,.c3 h4,.c3 .meta,.c3 p,.col h4,.col .say,.col .fx,.step h5,.step p,' +
+      '.stat-desc,.stat-desc .mut,.sr .v,.cat .fix,.cat ul,.vs-card .t,.vs-card .m,.pr-item p,.flap .say,' +
+      '.rt p,.rt .who,.el .et,.el .ed,.rule h5,.rule p,.layer .ldesc,.layer .ldesc .mut,.layer .lanalogy,' +
+      '.f6 h6,.f6 p,.ch h5,.ch p,.pit h5,.pit p,.cap,.insight span:last-child,.tb td,.div-title,.div-sub,' +
+      '.j4 h5,.j4 p,.pstep,.end-q,.end-chip,.gcard div:last-child';
+  }
+  toggleEditMode() {
+    this.isActive = !this.isActive;
+    document.body.classList.toggle('editing', this.isActive);
+    document.getElementById('editToggle').classList.toggle('active', this.isActive);
+    document.querySelectorAll(this.selectors()).forEach(el => {
+      if (this.isActive) { el.setAttribute('contenteditable', 'plaintext-only'); }
+      else { el.removeAttribute('contenteditable'); }
+    });
+    if (!this.isActive) this.save();
+  }
+  bindToggle() {
+    document.getElementById('editToggle').addEventListener('click', () => this.toggleEditMode());
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) this.toggleEditMode();
+    });
+  }
+  bindHotzone() {
+    const hz = document.getElementById('editHotzone'), btn = document.getElementById('editToggle');
+    let t = null;
+    hz.addEventListener('mouseenter', () => { clearTimeout(t); btn.classList.add('show'); });
+    hz.addEventListener('mouseleave', () => { t = setTimeout(() => { if (!this.isActive) btn.classList.remove('show'); }, 400); });
+    btn.addEventListener('mouseenter', () => clearTimeout(t));
+    btn.addEventListener('mouseleave', () => { t = setTimeout(() => { if (!this.isActive) btn.classList.remove('show'); }, 400); });
+    hz.addEventListener('click', () => this.toggleEditMode());
+  }
+  save() {
+    const data = {};
+    this.pres.slides.forEach((s, i) => { data[i] = s.innerHTML; });
+    try { localStorage.setItem('mas-deck-edits', JSON.stringify(data)); } catch (e) {}
+  }
+  restore() {
+    try {
+      const data = JSON.parse(localStorage.getItem('mas-deck-edits') || 'null');
+      if (!data) return;
+      this.pres.slides.forEach((s, i) => { if (data[i]) s.innerHTML = data[i]; });
+    } catch (e) {}
+  }
+  bindSave() {
+    document.getElementById('btnSave').addEventListener('click', () => this.exportFile());
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); this.exportFile(); }
+    });
+  }
+  exportFile() {
+    const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    const blob = new Blob([html], {type: 'text/html'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '多智能体技术分享-编辑版.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+}
+
+const pres = new SlidePresentation();
+const editor = new InlineEditor(pres);
+document.getElementById('btnPrev').addEventListener('click', () => pres.prev());
+document.getElementById('btnNext').addEventListener('click', () => pres.next());
+</script>
+</body>
+</html>
