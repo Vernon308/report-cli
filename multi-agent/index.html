@@ -16,19 +16,19 @@
    改这几个变量即可整体换色
    =========================================== */
 :root{
-  --bg-primary:#0A1B12;                       /* 深绿墨底 */
-  --bg-gradient:linear-gradient(135deg,#0A1B12 0%,#12291B 50%,#0A1B12 100%);
+  --bg-primary:#081711;                       /* 深绿墨底 */
+  --bg-gradient:linear-gradient(135deg,#081711 0%,#13291C 50%,#081711 100%);
   --green:#00A65E;                            /* 邮储绿 · 主强调 */
   --green-deep:#00784A;
-  --green-soft:rgba(0,166,94,.14);
+  --green-soft:rgba(0,166,94,.12);
   --gold:#E4C46E;                             /* 金 · 数据强调 */
   --red:#E25C4A;                              /* 红 · 负向数据 */
-  --red-soft:rgba(226,92,74,.14);
+  --red-soft:rgba(226,92,74,.13);
   --text-primary:#F2F1EC;
-  --text-secondary:rgba(242,241,236,.62);
-  --text-dim:rgba(242,241,236,.4);
-  --line:rgba(242,241,236,.14);
-  --card-bg:#0F2418;                          /* 内容卡片底 */
+  --text-secondary:rgba(242,241,236,.72);
+  --text-dim:rgba(242,241,236,.5);
+  --line:rgba(242,241,236,.18);
+  --card-bg:#13291B;                          /* 内容卡片底 */
   --on-green:#06130C;                         /* 绿卡上的深字 */
   --font-display:'Archivo Black','Noto Sans SC',sans-serif;
   --font-body:'Space Grotesk','Noto Sans SC',sans-serif;
@@ -127,7 +127,7 @@ h2.st{font-family:var(--font-display);font-weight:900;font-size:64px;line-height
 
 /* 章节隔页 */
 .div-num{font-family:var(--font-display);font-size:340px;line-height:1;color:transparent;
-  -webkit-text-stroke:3px rgba(0,166,94,.55)}
+  -webkit-text-stroke:3px rgba(0,166,94,.68)}
 .div-title{font-family:var(--font-display);font-size:96px;font-weight:900;color:var(--text-primary);line-height:1.15}
 .div-sub{font-size:30px;color:var(--text-secondary);margin-top:22px;line-height:1.5}
 .div-min{display:inline-block;margin-top:36px;font-size:22px;letter-spacing:.24em;color:var(--on-green);
@@ -164,23 +164,25 @@ table.tb tr td .mut{color:var(--text-secondary);font-size:23px}
 .cover-top{display:flex;justify-content:space-between;align-items:center;font-size:22px;
   letter-spacing:.16em;color:var(--text-dim);text-transform:uppercase}
 .cover-top .pg{font-weight:700;color:var(--green)}
-.cover-hero{position:absolute;left:88px;bottom:130px;width:1120px;padding:64px 72px 58px}
-.cover-hero h1{font-family:var(--font-display);font-weight:900;font-size:96px;line-height:1.1;letter-spacing:.005em}
-.cover-hero .en{display:block;font-size:26px;font-weight:500;margin-top:24px;letter-spacing:.02em;opacity:.78;font-family:var(--font-body)}
-.cover-side{position:absolute;right:88px;bottom:130px;width:560px}
+.cover-mid{flex:1;display:flex;align-items:center;gap:60px;min-height:0}
+.cover-hero{flex:1.55;padding:56px 64px 52px}
+.cover-hero h1{font-family:var(--font-display);font-weight:900;font-size:82px;line-height:1.14;letter-spacing:.005em}
+.cover-hero .en{display:block;font-size:24px;font-weight:500;margin-top:24px;letter-spacing:.02em;opacity:.78;font-family:var(--font-body)}
+.cover-side{flex:1;max-width:560px}
 .cover-side .lbl{font-size:20px;letter-spacing:.3em;color:var(--text-dim);margin-bottom:16px;text-transform:uppercase}
 .cover-side .it{display:flex;gap:20px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)}
 .cover-side .it .n{font-family:var(--font-display);font-size:26px;color:var(--green)}
 .cover-side .it .t{font-size:27px;color:var(--text-primary);font-weight:500}
-.cover-foot{position:absolute;left:88px;top:150px;font-size:23px;color:var(--text-secondary);letter-spacing:.06em}
+.cover-foot{display:flex;justify-content:space-between;border-top:1px solid var(--line);
+  padding-top:22px;font-size:21px;color:var(--text-secondary);letter-spacing:.06em}
 
 /* 对立双卡（序章） */
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;min-height:0}
-.op{border-radius:16px;padding:44px 48px;display:flex;flex-direction:column}
+.op{border-radius:16px;padding:44px 48px;display:flex;flex-direction:column;justify-content:center;gap:14px}
 .op .date{font-size:21px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:20px;font-weight:700}
 .op h3{font-family:var(--font-display);font-size:44px;line-height:1.25;margin-bottom:16px}
 .op .pos{font-size:30px;font-weight:700;margin-bottom:18px}
-.op .why{font-size:25px;line-height:1.55;opacity:.85;margin-top:auto}
+.op .why{font-size:25px;line-height:1.55;opacity:.85;margin-top:10px}
 .op.no{background:var(--card-bg);border:1px solid rgba(226,92,74,.45)}
 .op.no .date{color:var(--red)} .op.no .pos{color:var(--red)} .op.no h3{color:var(--text-primary)}
 .op.yes{background:var(--green);color:var(--on-green)}
@@ -198,7 +200,12 @@ table.tb tr td .mut{color:var(--text-secondary);font-size:23px}
 /* 三卡 */
 .cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;flex:1;align-content:start}
 .c3{background:var(--card-bg);border:1px solid var(--line);border-radius:16px;padding:40px 40px 36px;display:flex;flex-direction:column}
-.c3 .ic{font-size:52px;margin-bottom:24px}
+.c3 .glyph{display:flex;align-items:center;height:52px;margin-bottom:22px}
+.c3 .g{border:3px solid var(--green);flex:none;position:relative;display:inline-block}
+.c3 .g-sq{width:32px;height:32px;border-radius:6px}
+.c3 .g-ci{width:32px;height:32px;border-radius:50%}
+.c3 .g-line{width:26px;height:3px;background:var(--green)}
+.c3 .g-dot{position:absolute;inset:9px;background:var(--green);border-radius:50%}
 .c3 h4{font-size:35px;font-weight:900;color:var(--text-primary);margin-bottom:8px}
 .c3 .meta{font-size:28px;font-weight:700;color:var(--green);margin-bottom:20px}
 .c3 p{font-size:24px;line-height:1.6;color:var(--text-secondary)}
@@ -216,12 +223,15 @@ table.tb tr td .mut{color:var(--text-secondary);font-size:23px}
 /* 台阶 */
 .stairs{display:flex;align-items:flex-end;gap:22px;flex:1;padding:0 8px}
 .step{flex:1;display:flex;flex-direction:column;justify-content:flex-end}
-.step .bar{background:var(--card-bg);border:1px solid var(--line);border-radius:12px 12px 0 0;padding:26px 24px;flex-shrink:0}
+.step .bar{background:var(--card-bg);border:1px solid var(--line);border-top:4px solid rgba(0,166,94,.35);
+  border-radius:12px 12px 0 0;padding:26px 24px;flex-shrink:0}
+.step[data-l="2"] .bar{border-top-color:rgba(0,166,94,.5)}
+.step[data-l="3"] .bar{border-top-color:rgba(0,166,94,.72)}
+.step.mas .bar{border-top-color:var(--green);box-shadow:0 0 0 1px rgba(0,166,94,.3)}
+.step.mas h5{color:var(--green)}
 .step h5{font-size:29px;font-weight:900;margin-bottom:8px}
 .step p{font-size:21px;line-height:1.5;color:var(--text-secondary)}
 .step .lv{font-family:var(--font-display);font-size:21px;color:var(--green);margin-bottom:12px}
-.step.mas .bar{background:var(--green);border-color:var(--green)}
-.step.mas h5{color:var(--on-green)} .step.mas p{color:rgba(6,19,12,.75)} .step.mas .lv{color:rgba(6,19,12,.6)}
 .stairs-note{margin-top:30px}
 
 /* 大数据页 */
@@ -389,17 +399,22 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
 <section class="slide">
   <div class="inner">
     <div class="cover-top reveal" style="--d:.05s"><span>技术大会 · 60 分钟分享</span><span class="pg">01 / 30</span></div>
-    <div class="cover-foot reveal" style="--d:.4s">2026.09 · 银行科技条线 · 文献答案 + 实战答案，一起讲</div>
-    <div class="gcard cover-hero reveal-scale" style="--d:.2s">
-      <div class="gk">Multi-Agent Systems</div>
-      <h1 style="margin-top:22px">多智能体系统<br>有效性边界与工程实践
-        <span class="en">When They Work, Why They Fail, and How to Build Them</span></h1>
+    <div class="cover-mid">
+      <div class="gcard cover-hero reveal-scale" style="--d:.2s">
+        <div class="gk">Multi-Agent Systems</div>
+        <h1 style="margin-top:22px">多智能体系统<br>有效性边界与工程实践
+          <span class="en">When They Work, Why They Fail, and How to Build Them</span></h1>
+      </div>
+      <div class="cover-side">
+        <div class="lbl reveal" style="--d:.55s">三个关键结论</div>
+        <div class="it reveal" style="--d:.65s"><span class="n">1</span><span class="t">不是所有任务都适合组队</span></div>
+        <div class="it reveal" style="--d:.75s"><span class="n">2</span><span class="t">翻车是系统设计问题，有成熟解法</span></div>
+        <div class="it reveal" style="--d:.85s"><span class="n">3</span><span class="t">AgentHub 实战：五个文献没写的坑</span></div>
+      </div>
     </div>
-    <div class="cover-side">
-      <div class="lbl reveal" style="--d:.55s">三个关键结论</div>
-      <div class="it reveal" style="--d:.65s"><span class="n">1</span><span class="t">不是所有任务都适合组队</span></div>
-      <div class="it reveal" style="--d:.75s"><span class="n">2</span><span class="t">翻车是系统设计问题，有成熟解法</span></div>
-      <div class="it reveal" style="--d:.85s"><span class="n">3</span><span class="t">AgentHub 实战：五个文献没写的坑</span></div>
+    <div class="cover-foot reveal" style="--d:.4s">
+      <span>2026.09 · 银行科技条线 · 文献答案 + 实战答案，一起讲</span>
+      <span>MULTI-AGENT SYSTEMS</span>
     </div>
   </div>
 </section>
@@ -428,7 +443,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     </div>
     <div class="insight reveal" style="--d:.65s;margin-top:36px">
       <span class="tag-i">谁对？</span>
-      <span><b>都对。</b>相隔一天、结论相反——争论把问题从"要不要做"逼到了<b>"什么任务适合、怎么做才对"</b>。这也是我们搭 AgentHub 时天天问自己的问题。</span>
+      <span><b>都对。</b>相隔一天、结论相反——争论把问题从「要不要做」逼到了<b>「什么任务适合、怎么做才对」</b>。这也是我们搭 AgentHub 时天天问自己的问题。</span>
     </div>
   </div>
 </section>
@@ -447,7 +462,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       <div class="map-cell reveal" style="--d:.39s"><div class="cn">02</div><div class="ct">看数据</div><div class="cm">9 min · 有效还是更差</div></div>
       <div class="map-cell reveal" style="--d:.46s"><div class="cn">03</div><div class="ct">五件事</div><div class="cm">11 min · 分工 派活 通气 对话 验收</div></div>
       <div class="map-cell reveal" style="--d:.53s"><div class="cn">04</div><div class="ct">生产的距离</div><div class="cm">8 min · 从能跑到敢上线</div></div>
-      <div class="map-cell hot reveal" style="--d:.6s"><div class="cn">05</div><div class="ct">五个坑</div><div class="cm">7 min · 我们自己踩的</div></div>
+      <div class="map-cell reveal" style="--d:.6s"><div class="cn">05</div><div class="ct">五个坑</div><div class="cm">7 min · 我们自己踩的</div></div>
       <div class="map-cell reveal" style="--d:.67s"><div class="cn">06</div><div class="ct">框架与协议</div><div class="cm">3 min · 怎么选</div></div>
       <div class="map-cell reveal" style="--d:.74s"><div class="cn">终章</div><div class="ct">判断与顺序</div><div class="cm">3 min · 带回去就能用</div></div>
     </div>
@@ -483,27 +498,27 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     </div>
     <div class="cards3">
       <div class="c3 reveal" style="--d:.3s">
-        <div class="ic">🏭</div>
+        <div class="glyph"><span class="g g-sq"></span><span class="g-line"></span><span class="g g-sq" style="opacity:.45"></span></div>
         <h4>工作流 Workflow</h4>
         <div class="meta">步骤事先写死</div>
         <p>AI 按流程图走。像<b>工厂流水线</b>：每个工位干什么，是规定好的。</p>
       </div>
       <div class="c3 reveal" style="--d:.42s">
-        <div class="ic">🧑‍💼</div>
+        <div class="glyph"><span class="g g-ci"><span class="g-dot"></span></span></div>
         <h4>智能体 Agent</h4>
         <div class="meta">AI 自己决定怎么干</div>
         <p>自己决定下一步、用什么工具，干到完成为止。像<b>能独立接单的员工</b>：交代目标，他自己想办法。</p>
       </div>
       <div class="c3 reveal" style="--d:.54s">
-        <div class="ic">👥</div>
+        <div class="glyph"><span class="g g-ci"></span><span class="g g-ci" style="margin-left:-14px;opacity:.55"></span><span class="g g-ci" style="margin-left:-14px;opacity:.25"></span></div>
         <h4>多智能体系统 MAS</h4>
         <div class="meta">分工 + 沟通机制</div>
-        <p>多个"员工"协同干活，加一套协作机制。像<b>一个项目组</b>。</p>
+        <p>多个「员工」协同干活，加一套协作机制。像<b>一个项目组</b>。</p>
       </div>
     </div>
     <div class="insight reveal" style="--d:.7s;margin-top:34px">
       <span class="tag-i">排除</span>
-      <span>把几个 AI 调用串成固定流程——那是工作流；多开几个互不通气的聊天窗口——那也不是 MAS。<b>token</b> 可粗略按"字数"理解，是 AI 的计费单位。</span>
+      <span>把几个 AI 调用串成固定流程——那是工作流；多开几个互不通气的聊天窗口——那也不是 MAS。<b>token</b> 可粗略按「字数」理解，是 AI 的计费单位。</span>
     </div>
   </div>
 </section>
@@ -515,13 +530,13 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     <div class="head reveal" style="--d:.15s">
       <div class="kicker">为什么一个 AI 不够用</div>
       <h2 class="st">三个硬伤，都是结构问题</h2>
-      <small>长任务跑到后半段"失忆"、答非所问——根源在这里，换更强的模型也治不好</small>
+      <small>长任务跑到后半段「失忆」、答非所问——根源在这里，换更强的模型也治不好</small>
     </div>
     <div class="cols3">
       <div class="col reveal" style="--d:.3s">
         <div class="cn">A</div>
         <h4>上下文爆炸</h4>
-        <div class="say">"工作记忆"有上限，长任务的中间过程全堆在里面，早期的决定被挤出去。</div>
+        <div class="say">「工作记忆」有上限，长任务的中间过程全堆在里面，早期的决定被挤出去。</div>
         <div class="fx">后果：跑到后期失忆、跑偏</div>
       </div>
       <div class="col reveal" style="--d:.42s">
@@ -539,7 +554,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     </div>
     <div class="insight reveal" style="--d:.7s;margin-top:34px">
       <span class="tag-i">关键</span>
-      <span>A 会随模型窗口扩大而缓解；<b>"没法并行"和"没人挑错"不随模型变强消失</b>——这两条才是组队的长期理由。个体智力十万年没变，组织让能力指数增长。</span>
+      <span>A 会随模型窗口扩大而缓解；<b>「没法并行」和「没人挑错」不随模型变强消失</b>——这两条才是组队的长期理由。个体智力十万年没变，组织让能力指数增长。</span>
     </div>
   </div>
 </section>
@@ -553,15 +568,15 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       <h2 class="st">复杂度的五个台阶</h2>
     </div>
     <div class="stairs">
-      <div class="step reveal" style="--d:.3s"><div class="bar" style="min-height:200px"><div class="lv">L1</div><h5>链式</h5><p>固定几步一步一步来。先写提纲，检查，再写正文。</p></div></div>
-      <div class="step reveal" style="--d:.4s"><div class="bar" style="min-height:260px"><div class="lv">L2</div><h5>路由</h5><p>先分类再分发。简单问题给小模型，省钱。</p></div></div>
-      <div class="step reveal" style="--d:.5s"><div class="bar" style="min-height:320px"><div class="lv">L3</div><h5>并行</h5><p>互不干扰的事同时做，最后汇总。三个"审查员"各查一个方面。</p></div></div>
+      <div class="step reveal" data-l="1" style="--d:.3s"><div class="bar" style="min-height:200px"><div class="lv">L1</div><h5>链式</h5><p>固定几步一步一步来。先写提纲，检查，再写正文。</p></div></div>
+      <div class="step reveal" data-l="2" style="--d:.4s"><div class="bar" style="min-height:260px"><div class="lv">L2</div><h5>路由</h5><p>先分类再分发。简单问题给小模型，省钱。</p></div></div>
+      <div class="step reveal" data-l="3" style="--d:.5s"><div class="bar" style="min-height:320px"><div class="lv">L3</div><h5>并行</h5><p>互不干扰的事同时做，最后汇总。三个「审查员」各查一个方面。</p></div></div>
       <div class="step mas reveal" style="--d:.6s"><div class="bar" style="min-height:380px"><div class="lv">L4</div><h5>指挥-工人</h5><p>总指挥现场拆活、派活、汇总。改哪几个文件，看了需求才知道。</p></div></div>
       <div class="step mas reveal" style="--d:.7s"><div class="bar" style="min-height:440px"><div class="lv">L5</div><h5>生成-评审</h5><p>一个写、一个挑错，改到通过为止。翻译、写方案。</p></div></div>
     </div>
     <div class="insight stairs-note reveal" style="--d:.85s">
       <span class="tag-i">忠告</span>
-      <span>L4、L5 已是 MAS 雏形。但<b>能简单就别复杂</b>——很多应用把"单次调用 + 检索"调好就够；<b>慎用现成框架</b>——很多模式几十行原始代码就够。</span>
+      <span>L4、L5 已是 MAS 雏形。但<b>能简单就别复杂</b>——很多应用把「单次调用 + 检索」调好就够；<b>慎用现成框架</b>——很多模式几十行原始代码就够。</span>
     </div>
   </div>
 </section>
@@ -588,12 +603,12 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     <div class="stat-hero">
       <div class="stat-big num-g reveal-scale" style="--d:.2s">+90.2%</div>
       <div class="stat-desc reveal" style="--d:.4s">多智能体系统在研究评测上，比最强的单个 Agent 提升这么多。
-        <span class="mut">典型任务："找出标普 500 科技板块所有公司的董事会成员"——单个 AI 一个个查做不完，多个 AI 分头查就做完了。口径：Anthropic 内部评测。</span></div>
+        <span class="mut">典型任务：「找出标普 500 科技板块所有公司的董事会成员」——单个 AI 一个个查做不完，多个 AI 分头查就做完了。口径：Anthropic 内部评测。</span></div>
     </div>
     <div class="stat-row">
       <div class="sr reveal" style="--d:.55s"><div class="k num-a">≈80%</div><div class="v">性能差距只看谁花的 token 多就能猜到——有效的原因很直白：把更多算力花在同一个问题上</div></div>
       <div class="sr reveal" style="--d:.65s"><div class="k num-a">4× / 15×</div><div class="v">单 Agent 约为普通聊天的 4 倍 token，多智能体约 15 倍——不是免费午餐，是花钱买能力</div></div>
-      <div class="sr reveal" style="--d:.75s"><div class="k num-g">上限靠投入<br>下限靠设计</div><div class="v">token 解释了为什么"能"有效，解释不了为什么有人花 15 倍反而倒退</div></div>
+      <div class="sr reveal" style="--d:.75s"><div class="k num-g">上限靠投入<br>下限靠设计</div><div class="v">token 解释了为什么「能」有效，解释不了为什么有人花 15 倍反而倒退</div></div>
     </div>
   </div>
 </section>
@@ -668,7 +683,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     </div>
     <div class="two-col">
       <div class="flap reveal" style="--d:.3s">
-        <h5>案例：把"做 Flappy Bird"拆给两个子 Agent</h5>
+        <h5>案例：把「做 Flappy Bird」拆给两个子 Agent</h5>
         <div class="pieces">
           <div class="pc pc1">子任务①「背景」<br>画成了马里奥风</div>
           <div class="x">✕</div>
@@ -680,12 +695,12 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
         <div class="pr-item reveal" style="--d:.45s">
           <div class="pn">原则 1</div>
           <p>信息要传<b>完整的记录</b>，不是转述几句话。
-            <span class="mut">只告诉同事"做个背景"，他当然按自己的想象做。</span></p>
+            <span class="mut">只告诉同事「做个背景」，他当然按自己的想象做。</span></p>
         </div>
         <div class="pr-item reveal" style="--d:.57s">
           <div class="pn">原则 2</div>
           <p>每个行动背后都有<b>没明说的决定</b>。
-            <span class="mut">所以 Cognition 建议：默认单干按顺序来；活太长就把"之前做过的决定"压缩传递下去。</span></p>
+            <span class="mut">所以 Cognition 建议：默认单干按顺序来；活太长就把「之前做过的决定」压缩传递下去。</span></p>
         </div>
       </div>
     </div>
@@ -733,10 +748,10 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       <div class="route">
         <div class="rt hl reveal" style="--d:.3s">
           <div class="rt-h"><h4>中心化</h4><span class="who">Anthropic · OpenAI Manager · AgentHub</span></div>
-          <p>一个"总指挥"统一拆活、派活、收结果。<b>好管理、好验收</b>；总指挥是瓶颈。</p>
+          <p>一个「总指挥」统一拆活、派活、收结果。<b>好管理、好验收</b>；总指挥是瓶颈。</p>
         </div>
         <div class="rt reveal" style="--d:.42s">
-          <div class="rt-h"><h4>去中心化</h4><span class="who">客服"转接"模式</span></div>
+          <div class="rt-h"><h4>去中心化</h4><span class="who">客服「转接」模式</span></div>
           <p>几个 AI 平级，谁擅长谁接。<b>对话场景自然</b>；转接条件写不好会来回踢皮球。</p>
         </div>
         <div class="rt reveal" style="--d:.54s">
@@ -765,9 +780,9 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       <span class="pg">15 / 30</span>
     </div>
     <div class="head reveal" style="--d:.15s">
-      <div class="kicker">把"说清楚"变成格式</div>
+      <div class="kicker">把「说清楚」变成格式</div>
       <h2 class="st">派活必须说清四件事</h2>
-      <small>Anthropic 的反例：只说"研究一下半导体短缺"→ 两个子 Agent 重复查今年的供应链，一个跑去看 2021 年旧闻</small>
+      <small>Anthropic 的反例：只说「研究一下半导体短缺」→ 两个子 Agent 重复查今年的供应链，一个跑去看 2021 年旧闻</small>
     </div>
     <div style="display:grid;grid-template-columns:1fr 820px;gap:52px;flex:1;align-items:start">
       <div>
@@ -786,19 +801,19 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
         <div class="code">
 <span class="c">// AgentHub「派单」工具的真实格式（节选）</span>
 {
-  <span class="k">"reasoning"</span>: <span class="s">"为什么这样拆"</span>,
+  <span class="k">"reasoning"</span>: <span class="s">「为什么这样拆」</span>,
   <span class="k">"tasks"</span>: [{
-    <span class="k">"id"</span>: <span class="s">"t1"</span>, <span class="k">"agentId"</span>: <span class="s">"谁干"</span>,
-    <span class="k">"task"</span>: <span class="s">"干什么"</span>,
+    <span class="k">"id"</span>: <span class="s">"t1"</span>, <span class="k">"agentId"</span>: <span class="s">「谁干」</span>,
+    <span class="k">"task"</span>: <span class="s">「干什么」</span>,
     <span class="k">"dependsOn"</span>: [<span class="s">"t0"</span>],
-    <span class="k">"inputs"</span>: [<span class="s">"上游哪个产出"</span>],
+    <span class="k">"inputs"</span>: [<span class="s">「上游哪个产出」</span>],
     <span class="k">"expectedOutputs"</span>: [{<span class="k">"outputKey"</span>: <span class="s">"prd"</span>}],
-    <span class="k">"constraints"</span>: [<span class="s">"范围仅限订单模块"</span>,
-                   <span class="s">"不许改公共组件"</span>]
+    <span class="k">"constraints"</span>: [<span class="s">「范围仅限订单模块」</span>,
+                   <span class="s">「不许改公共组件」</span>]
   }]
 }
-<span class="c">// 一张系统能检查的"派工单"</span></div>
-        <div class="cap" style="margin-top:18px">四要素从"提醒 AI 注意"变成了<b>系统能检查的格式</b>。</div>
+<span class="c">// 一张系统能检查的「派工单」</span></div>
+        <div class="cap" style="margin-top:18px">四要素从「提醒 AI 注意」变成了<b>系统能检查的格式</b>。</div>
       </div>
     </div>
   </div>
@@ -845,12 +860,12 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     </div>
     <div class="head reveal" style="--d:.15s">
       <div class="kicker">给多少背景，是个精细活</div>
-      <h2 class="st">子 Agent 上岗前的"入职简报"</h2>
+      <h2 class="st">子 Agent 上岗前的「入职简报」</h2>
       <small>收到的不是群聊全部历史——每条规则都是踩坑踩出来的</small>
     </div>
     <div class="rules">
       <div class="rule reveal" style="--d:.3s"><div class="rn">1</div><div><h5>消息只留最近 5 条 + 置顶</h5><p>再多就是干扰。</p></div></div>
-      <div class="rule reveal" style="--d:.42s"><div class="rn">2</div><div><h5>依赖链上的上游产物 → 给摘要，全文随取</h5><p>专防"发现重要信息不告诉队友"；全文塞进简报会把工作记忆撑爆——需要全文自己调工具取。</p></div></div>
+      <div class="rule reveal" style="--d:.42s"><div class="rn">2</div><div><h5>依赖链上的上游产物 → 给摘要，全文随取</h5><p>专防「发现重要信息不告诉队友」；全文塞进简报会把工作记忆撑爆——需要全文自己调工具取。</p></div></div>
       <div class="rule reveal" style="--d:.54s"><div class="rn">3</div><div><h5>其它产物 → 只给标题</h5><p>知道存在就行，要用再取。裁的是<b>噪音</b>，不是<b>决定</b>——上游产物和关键决定全文随取随有。</p></div></div>
     </div>
     <div class="insight reveal" style="--d:.7s;margin-top:32px">
@@ -869,7 +884,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       <span class="pg">18 / 30</span>
     </div>
     <div class="head reveal" style="--d:.15s">
-      <div class="kicker">行业已经有"普通话"了</div>
+      <div class="kicker">行业已经有「普通话」了</div>
       <h2 class="st">协议分层：连工具 · 连 AI · 连人</h2>
     </div>
     <div class="layers">
@@ -906,7 +921,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     </div>
     <div class="head reveal" style="--d:.15s">
       <div class="kicker">Google 实验：没有独立检查，错误一路传下去</div>
-      <h2 class="st">"做完了"三个字不算数</h2>
+      <h2 class="st">「做完了」三个字不算数</h2>
     </div>
     <div class="img-left">
       <div class="reveal-scale" style="--d:.3s">
@@ -915,7 +930,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       <div>
         <div class="pr-item reveal" style="--d:.45s">
           <div class="pn">完工单 report_task_result</div>
-          <p>状态写"完成"<b>且验收条件逐条通过</b>，才算完成；没填单、报失败、任何一条没过——一律按失败处理。
+          <p>状态写「完成」<b>且验收条件逐条通过</b>，才算完成；没填单、报失败、任何一条没过——一律按失败处理。
             <span class="mut">截图：产品经理产出 PRD 后，逐条核对验收标准，全部打勾才上报。</span></p>
         </div>
         <div class="pr-item reveal" style="--d:.57s">
@@ -941,7 +956,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     </div>
     <div class="insight reveal" style="--d:.75s">
       <span class="tag-i">引言</span>
-      <span>"最后一公里往往是旅程的大半。" —— Anthropic</span>
+      <span>「最后一公里往往是旅程的大半。」 —— Anthropic</span>
     </div>
   </div>
 </section>
@@ -978,8 +993,8 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       <h2 class="st">四个上线级挑战</h2>
     </div>
     <div class="ch4">
-      <div class="ch reveal" style="--d:.3s"><h5><span class="no">01</span>小错会滚雪球</h5><p>连着几十步，一步错后面全歪 → <b>断点续跑 + 存档点</b>；还有招反直觉的：告诉 AI"这工具坏了"，让它自己绕过去。</p></div>
-      <div class="ch reveal" style="--d:.4s"><h5><span class="no">02</span>老办法调不了新问题</h5><p>同样指令每次表现可能不同 → <b>全程留痕 tracing</b>：记"做了什么决定"，不记聊天内容——能排查又保护隐私。</p></div>
+      <div class="ch reveal" style="--d:.3s"><h5><span class="no">01</span>小错会滚雪球</h5><p>连着几十步，一步错后面全歪 → <b>断点续跑 + 存档点</b>；还有招反直觉的：告诉 AI「这工具坏了」，让它自己绕过去。</p></div>
+      <div class="ch reveal" style="--d:.4s"><h5><span class="no">02</span>老办法调不了新问题</h5><p>同样指令每次表现可能不同 → <b>全程留痕 tracing</b>：记「做了什么决定」，不记聊天内容——能排查又保护隐私。</p></div>
       <div class="ch reveal" style="--d:.5s"><h5><span class="no">03</span>不能停机升级</h5><p>系统里随时有正在跑的任务 → <b>彩虹部署</b>：新旧版本同时跑，流量慢慢切。</p></div>
       <div class="ch reveal" style="--d:.6s"><h5><span class="no">04</span>排队等待有瓶颈</h5><p>总指挥等一拨人全干完才能继续 → 方向是<b>异步执行</b>，协调难度更大，是行业下一块硬骨头。</p></div>
     </div>
@@ -1000,12 +1015,12 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     </div>
     <div class="stat-row" style="margin-top:0;flex:1;align-content:center">
       <div class="sr reveal" style="--d:.3s"><div class="k num-a">15× → 3~4×</div><div class="v">对聊天是 15 倍 token；定红线换算成对<b>单干 3-4 倍</b>的口径——别拿 15 倍吓自己。派活刻度是最直接的阀门：小活不派大队</div></div>
-      <div class="sr reveal" style="--d:.42s"><div class="k num-g">≈ 1/10</div><div class="v">Claude Code 让子 Agent 复用父 Agent 的"前文缓存"——复印材料时前半本一样就不重印。<b>便宜九成，就敢更频繁派活</b></div></div>
+      <div class="sr reveal" style="--d:.42s"><div class="k num-g">≈ 1/10</div><div class="v">Claude Code 让子 Agent 复用父 Agent 的「前文缓存」——复印材料时前半本一样就不重印。<b>便宜九成，就敢更频繁派活</b></div></div>
       <div class="sr reveal" style="--d:.54s"><div class="k num-g">−40%</div><div class="v">把工具说明书写清楚，任务时间直降四成——AI 纠错也是要花 token 的</div></div>
     </div>
     <div class="insight reveal" style="--d:.7s">
       <span class="tag-i">记账</span>
-      <span>AgentHub 把每次运行的<b>输入 / 输出 / 缓存 token 分开记账</b>——没有这本账，"成本不许超过单干两倍"这条红线根本无从检查。</span>
+      <span>AgentHub 把每次运行的<b>输入 / 输出 / 缓存 token 分开记账</b>——没有这本账，「成本不许超过单干两倍」这条红线根本无从检查。</span>
     </div>
   </div>
 </section>
@@ -1019,7 +1034,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
         <img src="assert/deck/4.png" alt="AgentHub 交付总结" class="shot" style="width:100%">
       </div>
       <div>
-        <div class="div-num reveal" style="--d:.15s;font-size:200px">05</div>
+        <div class="div-num reveal" style="--d:.15s;font-size:170px;margin-bottom:6px">05</div>
         <div class="div-sub reveal" style="--d:.3s;font-size:28px">这一章全是自己的。<b style="color:var(--text-primary)">AgentHub</b>：我们自建的多智能体协作平台，形态像群聊——Agent 是群成员，总指挥是群里的项目经理。</div>
         <div class="cap reveal" style="--d:.5s;margin-top:26px">一次实跑交付：<b>产品经理出 PRD（10 项验收标准）→ 前端工程师实现记账 App（8 项功能逐条打勾）</b>。文献的结论在搭建中一条条被复现印证，但真正长记性的是五个坑。</div>
       </div>
@@ -1052,7 +1067,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       </div>
       <div class="reveal-scale" style="--d:.5s">
         <img src="assert/deck/5.png" alt="AgentHub 产物库" class="shot" style="width:100%">
-        <div class="cap" style="margin-top:18px"><b>产物独立生命周期</b>：PRD 与 App 各自成版、可单独浏览——坑二的"格式归一"就发生在产物入口。</div>
+        <div class="cap" style="margin-top:18px"><b>产物独立生命周期</b>：PRD 与 App 各自成版、可单独浏览——坑二的「格式归一」就发生在产物入口。</div>
       </div>
     </div>
   </div>
@@ -1069,12 +1084,12 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     <div class="img-right">
       <div class="pits" style="justify-content:center">
         <div class="pit reveal" style="--d:.3s">
-          <div class="ph"><span class="pn2">坑四</span><h5>"我做完了"没有意义</h5></div>
+          <div class="ph"><span class="pn2">坑四</span><h5>「我做完了」没有意义</h5></div>
           <p>早期子 Agent 说一句完成，总指挥就采信，汇总频繁拿到半成品。加上<b>完工单 + 逐条验收</b>后彻底改变。<b>认知：验收标准不是流程装饰，是协作协议的一部分。</b></p>
         </div>
         <div class="pit reveal" style="--d:.45s">
           <div class="ph"><span class="pn2">坑五</span><h5>审批不是在界面上加个按钮</h5></div>
-          <p>第一版就是个确认框，拦不住：用户还没看完计划，执行消息已经刷出来了。真解法在机制层：<b>系统看到"派单"动作，直接停止接收后续输出</b>。<b>认知：留人把关是架构属性，不是界面属性。</b></p>
+          <p>第一版就是个确认框，拦不住：用户还没看完计划，执行消息已经刷出来了。真解法在机制层：<b>系统看到「派单」动作，直接停止接收后续输出</b>。<b>认知：留人把关是架构属性，不是界面属性。</b></p>
         </div>
       </div>
       <div class="reveal-scale" style="--d:.5s">
@@ -1097,7 +1112,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
       <table class="tb reveal" style="--d:.3s">
         <tr><th style="width:40%">文献说</th><th>我们验证到</th></tr>
         <tr class="reveal" style="--d:.4s"><td>派活要给明确边界</td><td>派工单里的产出要求、依赖字段，就是边界的具体形态</td></tr>
-        <tr class="reveal" style="--d:.48s"><td>"信息截留"是高频翻车</td><td>简报里只注入依赖链上的上游产物</td></tr>
+        <tr class="reveal" style="--d:.48s"><td>「信息截留」是高频翻车</td><td>简报里只注入依赖链上的上游产物</td></tr>
         <tr class="reveal" style="--d:.56s"><td>独立检查抑制错误传播</td><td>完工单 + 逐条验收，前置把关</td></tr>
         <tr class="reveal" style="--d:.64s"><td>协调有开销</td><td>并行上限实测到 4，再大反而慢</td></tr>
         <tr class="reveal" style="--d:.72s"><td>成本要可计量</td><td>输入 / 输出 / 缓存分开记账，红线才检查得了</td></tr>
@@ -1130,7 +1145,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
         </div>
         <div class="pr-item reveal" style="--d:.62s">
           <div class="pn">金融同业参照</div>
-          <p>浦发 2500+ 智能体、农行"一明"协同。红线做法：<b>资金路径中心化 + 人工审批 + 防重</b>；后台先行、面客审慎；事件溯源，每步可审计。</p>
+          <p>浦发 2500+ 智能体、农行「一明」协同。红线做法：<b>资金路径中心化 + 人工审批 + 防重</b>；后台先行、面客审慎；事件溯源，每步可审计。</p>
         </div>
       </div>
     </div>
@@ -1171,7 +1186,7 @@ body.editing [contenteditable]{outline:2px dashed rgba(0,166,94,.6);outline-offs
     <div class="chrome reveal" style="--d:.05s;position:absolute;top:64px;left:88px;right:88px"><span class="cr-l"><b>Q&amp;A</b> · 10 MIN</span><span class="pg">30 / 30</span></div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
       <div class="kicker reveal" style="--d:.15s">留一个开放问题</div>
-      <div class="end-q reveal" style="--d:.3s">如果你的团队明天多出<span class="hl">五个不知疲倦的数字同事</span>，你第一件事会教它们什么？</div>
+      <div class="end-q reveal" style="--d:.3s">如果你的团队明天多出<span class="hl">五个不知疲倦的数字同事</span>，<br>你第一件事会教它们什么？</div>
       <div class="end-meta">
         <div class="end-chip gr reveal" style="--d:.5s">谢谢 · Q&amp;A</div>
         <div class="end-chip reveal" style="--d:.6s">+90.2% 与 −70% 之间，是设计</div>
