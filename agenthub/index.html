@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentHub｜让多个 Agent 像一个团队一样协作</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* === THEME: warm editorial paper with AgentHub blue and sage === */
+    :root {
+      --stage-bg: #d9dbd6;
+      --slide-bg: #f7f5ef;
+      --ink: #1e2a34;
+      --muted: #56646b;
+      --dim: #777f7d;
+      --line: rgba(30,42,52,.16);
+      --blue: #285b9d;
+      --cyan: #5d7f72;
+      --warm: #c07150;
+      --display: 'Noto Sans SC', sans-serif;
+      --serif: 'Noto Serif SC', serif;
+      --mono: 'IBM Plex Mono', monospace;
+      --ease: cubic-bezier(.18,.78,.22,1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* === MANDATORY FIXED 16:9 VIEWPORT BASE === */
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--stage-bg, #000);
+    }
+    .deck-viewport {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        background: var(--stage-bg, #000);
+    }
+    .deck-stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        transform-origin: 0 0;
+        background: var(--slide-bg, #fff);
+    }
+    .slide {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        display: block;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        background: var(--slide-bg, #fff);
+    }
+    .slide.active,
+    .slide.visible {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        z-index: 1;
+    }
+    img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+    .deck-controls {
+        position: fixed;
+        left: 50%;
+        bottom: 22px;
+        transform: translateX(-50%);
+        z-index: 1000;
+    }
+    @media print {
+        html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+        .deck-viewport { position: static; overflow: visible; background: #fff; }
+        .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+        .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+        .slide:last-child { break-after: auto; page-break-after: auto; }
+        .deck-controls, .speaker-notes, .edit-hotzone, .edit-toggle { display: none !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .2s !important; }
+    }
+
+    /* === GLOBAL SLIDE LANGUAGE === */
+    body { color: var(--ink); font-family: var(--display); }
+    .slide { padding: 76px 108px 72px; transition: opacity .42s ease, visibility .42s ease; }
+    .slide::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .7;
+      background: radial-gradient(ellipse at 88% 3%, rgba(93,127,114,.085), transparent 30%),
+                  linear-gradient(90deg, transparent 0 107px, rgba(192,113,80,.38) 107px 108px, transparent 108px),
+                  radial-gradient(rgba(30,42,52,.095) .8px, transparent .8px);
+      background-size: auto, auto, 20px 20px;
+    }
+    .slide::after { content: ''; position: absolute; left: 108px; right: 108px; bottom: 44px; height: 1px; background: var(--line); }
+    .slide-inner { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
+    .eyebrow { font: 500 16px var(--mono); letter-spacing: .15em; text-transform: uppercase; color: var(--cyan); display: flex; gap: 15px; align-items: center; }
+    .eyebrow::before { content: ''; width: 34px; height: 2px; background: var(--warm); }
+    .eyebrow::after { content: 'AGENTHUB  /  PROJECT BRIEF'; margin-left: auto; padding-left: 15px; border-left: 1px solid var(--line); color: var(--dim); font-size: 11px; letter-spacing: .12em; }
+    .title-slide .eyebrow::after { content: 'SHARED WORK / 2026'; }
+    h1, h2, p, li, .label, .quote, .editable { outline: none; }
+    h1 { font: 700 88px/1.23 var(--serif); letter-spacing: -.045em; }
+    h2 { font: 700 59px/1.28 var(--serif); letter-spacing: -.04em; }
+    .subhead { font-size: 26px; color: var(--muted); line-height: 1.62; }
+    .kicker { color: var(--dim); font: 500 17px var(--mono); letter-spacing: .1em; }
+    .accent { color: var(--blue); background: linear-gradient(transparent 70%, rgba(40,91,157,.16) 70%); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+    .blue { color: var(--blue); }
+    .warm { color: var(--warm); }
+    .tag { display: inline-flex; align-items: center; border: 1px solid var(--line); padding: 9px 13px; border-radius: 2px; color: #34445c; font: 500 14px var(--mono); }
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .65s var(--ease), transform .65s var(--ease); }
+    .slide.visible .reveal { opacity: 1; transform: translateY(0); }
+    .slide.visible .reveal:nth-child(2) { transition-delay: .1s; }
+    .slide.visible .reveal:nth-child(3) { transition-delay: .19s; }
+    .slide.visible .reveal:nth-child(4) { transition-delay: .28s; }
+    .slide.visible .reveal:nth-child(5) { transition-delay: .37s; }
+    .slide-no { position: absolute; z-index: 3; right: 110px; bottom: 54px; font: 500 13px var(--mono); color: var(--dim); letter-spacing: .06em; }
+    .slide-no::before { content: 'FOLIO  /  '; color: var(--dim); }
+    .slide-no strong { color: var(--warm); font-weight: 500; }
+    .image-frame { position: relative; overflow: hidden; border: 1px solid rgba(30,42,52,.17); padding: 8px; background: #ece9e0; box-shadow: 0 18px 42px rgba(38,45,52,.12); }
+    .image-frame::after { content: ''; position: absolute; inset: 8px; border: 1px solid rgba(255,255,255,.26); pointer-events: none; }
+    .image-frame img { display: block; width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
+    .image-caption { color: var(--muted); font: 13px var(--mono); margin-top: 13px; display: flex; gap: 20px; align-items: center; justify-content: space-between; }
+    .image-caption span:first-child { letter-spacing: .015em; }
+    .image-caption span:last-child { color: var(--blue); padding: 4px 7px; background: rgba(40,91,157,.07); white-space: nowrap; }
+    .image-lightbox { position: fixed; inset: 0; width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 5vh 5vw; border: 0; background: transparent; }
+    .image-lightbox[open] { display: grid; place-items: center; }
+    .image-lightbox::backdrop { background: rgba(29,42,56,.84); backdrop-filter: blur(5px); }
+    .image-lightbox img { display: block; max-width: 90vw; max-height: 88vh; object-fit: contain; border: 7px solid #f7f5ef; box-shadow: 0 28px 90px rgba(0,0,0,.38); cursor: zoom-out; }
+    .image-lightbox button { position: fixed; top: 24px; right: 30px; width: 48px; height: 48px; border: 1px solid rgba(255,255,255,.55); background: rgba(245,241,232,.96); color: var(--ink); font: 32px/1 var(--display); cursor: pointer; }
+    .image-lightbox button:hover { background: #fff; }
+
+    /* === SLIDE 1: TITLE, PEOPLE BEFORE PLATFORMS === */
+    .title-slide { padding-top: 88px; }
+    .title-grid { display: grid; grid-template-columns: 1fr 790px; gap: 70px; align-items: center; flex: 1; height: calc(100% - 48px); }
+    .title-copy { padding-bottom: 25px; }
+    .title-copy h1 { margin: 39px 0 23px; max-width: 850px; }
+    .title-copy .subhead { max-width: 740px; }
+    .title-meta { display: flex; align-items: center; gap: 10px; margin-top: 39px; flex-wrap: wrap; }
+    .title-visual { position: relative; }
+    .title-visual .image-frame { height: 488px; transform: rotate(.45deg); }
+    .title-visual .image-frame img { object-position: left top; }
+    .orbit { position: absolute; width: 104px; height: 104px; border: 1px solid rgba(71,122,107,.5); border-radius: 50%; top: -37px; right: -30px; }
+    .orbit::after { content: ''; position: absolute; width: 11px; height: 11px; border-radius: 50%; background: var(--warm); right: 7px; top: 14px; }
+    .title-bottom { position: absolute; left: 108px; right: 108px; bottom: 69px; display: flex; align-items: center; justify-content: space-between; }
+
+    /* === SLIDES 2–4: PRODUCT MOMENTUM AND HANDOFF === */
+    .split { display: grid; grid-template-columns: 720px 1fr; gap: 72px; align-items: center; flex: 1; }
+    .copy h2 { margin: 27px 0 22px; }
+    .copy .subhead { max-width: 680px; }
+    .points { margin-top: 37px; list-style: none; display: grid; gap: 16px; counter-reset: point; }
+    .points li { color: #34445c; font-size: 23px; line-height: 1.5; display: grid; grid-template-columns: 42px 1fr; gap: 7px; align-items: start; counter-increment: point; }
+    .points li::before { content: '0' counter(point); color: var(--warm); font: 500 14px var(--mono); padding-top: 7px; }
+    .split-visual .image-frame { width: 100%; height: 570px; }
+    .split-visual .image-caption { display: flex; justify-content: space-between; }
+    .callout { border-left: 2px solid var(--warm); margin-top: 29px; padding: 11px 15px; color: #78513f; font-size: 18px; line-height: 1.55; background: rgba(192,113,80,.065); }
+
+    /* === SLIDE 5: SYSTEM PIPELINE, DRAWN AS A MAP === */
+    .pipeline-slide h2 { margin: 25px 0 13px; }
+    .pipeline-slide .subhead { max-width: 1050px; }
+    .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 62px; position: relative; }
+    .pipeline::before { content: ''; position: absolute; left: 5%; right: 5%; top: 42px; height: 2px; background: linear-gradient(90deg, var(--blue) 0 40%, var(--cyan) 70%, var(--warm)); opacity: .65; }
+    .pipe-node { position: relative; z-index: 1; min-height: 260px; padding: 24px 20px 20px; border: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); border-radius: 0; background: rgba(255,255,255,.47); box-shadow: none; }
+    .pipe-index { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--blue); border: 4px solid var(--slide-bg); color: #fff; font: 500 12px var(--mono); margin-bottom: 25px; }
+    .pipe-node:nth-child(3) .pipe-index { background: var(--warm); color: #fff; }
+    .pipe-node h3 { font: 600 22px var(--serif); margin-bottom: 14px; }
+    .pipe-node p { color: var(--muted); font-size: 17px; line-height: 1.55; }
+    .contract-row { display: flex; gap: 14px; margin-top: 31px; }
+    .contract-row .tag { color: #34445c; }
+    .pipeline-note { margin-top: auto; padding-top: 32px; display: flex; align-items: center; gap: 14px; color: var(--muted); font-size: 20px; }
+    .pipeline-note b { color: var(--warm); font-weight: 600; }
+
+    /* === SLIDE 6: CAPABILITIES THAT MAKE THE WORKSPACE PRACTICAL === */
+    .capabilities-slide h2 { margin: 25px 0 13px; }
+    .capability-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 19px; margin-top: 57px; }
+    .capability { min-height: 320px; padding: 25px 23px 21px; background: rgba(255,255,255,.38); border: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+    .cap-icon { display: block; width: 42px; height: 42px; margin-bottom: 14px; color: var(--cyan); stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .cap-index { color: var(--blue); font: 500 14px var(--mono); letter-spacing: .11em; }
+    .capability h3 { margin-top: 18px; font: 600 25px var(--serif); }
+    .capability p { margin-top: 14px; color: #43536b; font-size: 19px; line-height: 1.7; min-height: 102px; }
+    .cap-rule { height: 1px; background: var(--line); margin: 23px 0 14px; }
+    .capability small { color: var(--dim); font-size: 15px; }
+    .capability-foot { display: flex; gap: 12px; align-items: center; margin-top: 31px; font-size: 21px; color: var(--muted); }
+    .capability-foot strong { color: var(--warm); font-weight: 600; }
+
+    /* === SLIDE 6: OUTPUTS LIVE BEYOND THE CHAT === */
+    .artifact-copy h2 { max-width: 640px; }
+    .artifact-quote { font: 600 33px/1.65 var(--serif); color: #25364c; max-width: 670px; margin-top: 35px; }
+    .artifact-quote::before { content: '“'; color: var(--blue); font: 700 66px var(--display); display: block; height: 55px; }
+    .artifact-quote small { display: block; color: var(--muted); font-size: 20px; margin-top: 16px; }
+    .artifact-visual .image-frame { height: 560px; }
+    .artifact-chips { display: flex; gap: 10px; margin-top: 28px; }
+
+    /* === SLIDE 7: GUARDRAILS ARE VISIBLE MOMENTS === */
+    .guard-title { margin: 24px 0 11px; }
+    .guard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 59px; }
+    .guard-card { min-height: 264px; border: 0; border-top: 1px solid var(--ink); padding: 26px 23px 22px; border-radius: 0; background: rgba(255,255,255,.42); box-shadow: none; }
+    .guard-symbol { width: auto; height: auto; border: 0; color: var(--warm); display: block; font: 500 15px var(--mono); border-radius: 0; margin-bottom: 26px; }
+    .guard-card h3 { font: 600 25px var(--serif); margin-bottom: 14px; }
+    .guard-card p { color: var(--muted); font-size: 19px; line-height: 1.65; }
+    .guard-bottom { margin-top: auto; display: flex; justify-content: space-between; align-items: end; padding-top: 32px; }
+    .guard-bottom p { font-size: 22px; color: #34445c; max-width: 1120px; line-height: 1.5; }
+    .guard-bottom b { color: var(--warm); }
+
+    /* === SLIDE 8: CLOSE WITH A HUMAN-SCALE PROMISE === */
+    .closing-slide { padding-top: 86px; }
+    .closing-head { margin-top: 24px; max-width: 1480px; }
+    .closing-head h2 { font-size: 69px; }
+    .flow { display: flex; align-items: center; gap: 16px; margin-top: 56px; }
+    .flow-step { width: 255px; height: 143px; border: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); border-radius: 0; padding: 22px 21px; background: rgba(255,255,255,.42); box-shadow: none; }
+    .flow-step span { display: block; font: 500 15px var(--mono); color: var(--cyan); margin-bottom: 15px; }
+    .flow-step b { font-size: 22px; font-weight: 600; }
+    .flow-arrow { color: var(--dim); font: 22px var(--mono); }
+    .closing-bottom { display: grid; grid-template-columns: 1fr 670px; gap: 54px; align-items: center; margin-top: 51px; }
+    .closing-line { font-size: 29px; line-height: 1.55; max-width: 900px; color: #27384e; }
+    .closing-line strong { color: var(--warm); font-weight: 600; }
+    .closing-visual { height: 282px; padding: 17px 22px 13px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); background: radial-gradient(rgba(30,42,52,.1) .7px, transparent .7px); background-size: 15px 15px; }
+    .diagram-cap { display: flex; justify-content: space-between; color: var(--dim); font: 500 11px var(--mono); letter-spacing: .13em; }
+    .closing-visual svg { display: block; width: 100%; height: 225px; overflow: visible; }
+    .diagram-line { fill: none; stroke: var(--blue); stroke-width: 1.7; }
+    .diagram-dash { fill: none; stroke: var(--cyan); stroke-width: 1.5; stroke-dasharray: 4 6; }
+    .diagram-paper { fill: #fbfaf6; stroke: rgba(30,42,52,.32); stroke-width: 1.3; }
+    .diagram-blue { fill: var(--blue); }
+    .diagram-sage { fill: var(--cyan); }
+    .diagram-warm { fill: var(--warm); }
+    .diagram-ink { fill: var(--ink); }
+    .diagram-label { fill: var(--ink); font: 600 16px var(--display); }
+    .diagram-sub { fill: var(--muted); font: 12px var(--mono); letter-spacing: .04em; }
+    .diagram-paper-line { stroke: rgba(30,42,52,.25); stroke-width: 1.2; }
+
+    /* === PRESENTATION CHROME: PROGRESS, NOTES, EDITING === */
+    .deck-controls { width: min(680px, calc(100vw - 32px)); display: flex; align-items: center; gap: 12px; padding: 10px 13px; border: 1px solid rgba(30,42,52,.15); border-radius: 5px; background: rgba(250,249,245,.97); color: var(--muted); backdrop-filter: blur(14px); box-shadow: 0 9px 28px rgba(31,47,68,.13); }
+    .deck-controls button, .edit-toggle { color: inherit; border: 0; background: transparent; font: 14px var(--display); cursor: pointer; padding: 8px 11px; border-radius: 7px; }
+    .deck-controls button:hover, .edit-toggle:hover { background: rgba(24,38,56,.07); color: var(--ink); }
+    .progress-track { height: 3px; background: rgba(24,38,56,.14); border-radius: 9px; flex: 1; overflow: hidden; }
+    .progress-value { height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); width: 11.111%; transition: width .35s ease; }
+    .counter { font: 13px var(--mono); min-width: 58px; text-align: center; }
+    .speaker-notes { position: fixed; z-index: 1100; right: 22px; top: 22px; bottom: 88px; width: min(550px, calc(100vw - 44px)); padding: 25px 27px; border: 1px solid rgba(30,42,52,.16); border-radius: 5px; background: rgba(250,249,245,.99); color: var(--ink); box-shadow: 0 25px 70px rgba(31,47,68,.18); overflow-y: auto; opacity: 0; pointer-events: none; transform: translateX(20px); transition: .25s ease; }
+    .speaker-notes.open { opacity: 1; pointer-events: auto; transform: translateX(0); }
+    .notes-label { color: var(--cyan); font: 500 13px var(--mono); letter-spacing: .12em; margin-bottom: 17px; }
+    .notes-title { font-size: 23px; font-weight: 700; margin-bottom: 7px; }
+    .notes-time { color: var(--dim); font: 13px var(--mono); margin-bottom: 20px; }
+    .notes-script { white-space: pre-line; font-size: 17px; line-height: 1.85; color: #42516a; }
+    .edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 1200; cursor: pointer; }
+    .edit-toggle { position: fixed; z-index: 1201; top: 16px; left: 16px; background: rgba(255,255,255,.95); border: 1px solid var(--line); opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+    .edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+    .edit-mode [data-editable="true"] { outline: 1px dashed rgba(93,127,114,.68); outline-offset: 4px; cursor: text; }
+    .toast { position: fixed; z-index: 1300; left: 50%; top: 22px; transform: translate(-50%,-10px); opacity: 0; padding: 10px 15px; color: var(--ink); font: 14px var(--display); background: #fff; border: 1px solid var(--line); border-radius: 8px; transition: .25s ease; pointer-events: none; box-shadow: 0 12px 34px rgba(31,47,68,.14); }
+    .toast.show { opacity: 1; transform: translate(-50%,0); }
+  </style>
+</head>
+<body>
+  <div class="deck-viewport">
+    <main class="deck-stage" id="deckStage" aria-label="AgentHub 八分钟分享">
+      <section class="slide title-slide active visible" aria-label="标题">
+        <div class="slide-inner title-grid">
+          <div class="title-copy">
+            <div class="eyebrow reveal" data-editable="true">AGENTHUB / FIELD NOTES</div>
+            <h1 class="reveal" data-editable="true">让多个 Agent<br><span class="accent">像一个团队</span>一样协作</h1>
+            <p class="subhead reveal" data-editable="true">从一段对话开始，把需求、分工、执行和交付放进同一个工作现场。</p>
+            <div class="title-meta reveal"><span class="tag">汇报人：丁群</span><span class="tag">约 8 分钟</span><span class="tag">MULTI-AGENT WORKSPACE</span></div>
+          </div>
+          <div class="title-visual reveal">
+            <span class="orbit"></span>
+            <div class="image-frame"><img src="agenthub-assets/6.png" alt="AgentHub 中可协作的 Agent 角色列表"></div>
+            <div class="image-caption"><span>一支团队，多个专长</span><span>01 / 09</span></div>
+          </div>
+        </div>
+        <div class="title-bottom"><span class="kicker">AGENT AS TEAMMATES · WORKSPACE AS SHARED CONTEXT</span><span class="kicker">丁群 · 2026</span></div>
+        <aside class="speaker-script" hidden data-title="从单个助手，到一支能协作的队伍" data-time="0:00–0:50">我们先从一个很日常的问题开始：如果要做一个小产品，通常得先理清需求，再设计界面、写代码、检查结果。今天这些工作可以交给不同的 AI Agent，但只把它们放在几个独立的聊天窗口里，协作仍然要靠人来回搬运上下文、转交文件、盯进度。AgentHub 想解决的就是这段断开的协作过程。它把 Agent 作为可选择的成员，把一次对话作为共同工作的空间，再让 Orchestrator 帮忙拆解和调度。重点不是 Agent 数量多，而是它们能围绕同一个目标接力工作。</aside>
+      </section>
+
+      <section class="slide" aria-label="需求澄清">
+        <div class="slide-inner split">
+          <div class="copy">
+            <div class="eyebrow reveal" data-editable="true">01 / START WITH INTENT</div>
+            <h2 class="reveal" data-editable="true">一句需求，<br>先别急着开工</h2>
+            <p class="subhead reveal" data-editable="true">把真正影响方案的选择摆到桌面上，先对齐“要做成什么”。</p>
+            <ul class="points reveal" data-editable="true"><li>范围：基础版还是完整版本？</li><li>体验：移动优先，还是桌面优先？</li><li>验收：哪些页面和能力必须具备？</li></ul>
+            <div class="callout reveal" data-editable="true">好的协作，往往从一个合适的问题开始。</div>
+          </div>
+          <div class="split-visual reveal"><div class="image-frame"><img src="agenthub-assets/1.png" alt="Orchestrator 向用户提出结构化需求澄清问题"></div><div class="image-caption"><span>Orchestrator 把不确定性变成可回答的问题</span><span>02 / 09</span></div></div>
+        </div>
+        <span class="slide-no"><strong>02</strong> / 09</span>
+        <aside class="speaker-script" hidden data-title="先把需求问清楚，再开始干活" data-time="0:50–1:40">截图里用户说的是“做一个记账 App”。这句话看起来清楚，真要动手却还缺不少信息：做基础记账还是完整版本？优先支持什么设备？需要哪些页面？要不要统计和分类管理？AgentHub 让 Orchestrator 先识别这些会影响方案的关键选择，再把问题集中交给用户。用户回答之后，Orchestrator 再把目标整理成任务和验收标准，而不是让每个 Agent 各自猜一遍。协作质量不只取决于模型会不会写，还取决于系统能不能把模糊意图变成共享、可检查的工作约定。</aside>
+      </section>
+
+      <section class="slide" aria-label="计划与审批">
+        <div class="slide-inner split">
+          <div class="copy">
+            <div class="eyebrow reveal" data-editable="true">02 / MAKE THE PLAN VISIBLE</div>
+            <h2 class="reveal" data-editable="true">计划先给人看，<br>再让 Agent 执行</h2>
+            <p class="subhead reveal" data-editable="true">每一项工作都有负责人、依赖关系和可检查的交付目标。</p>
+            <ul class="points reveal" data-editable="true"><li>产品经理先写 PRD</li><li>前端工程师依据 PRD 实现</li><li>用户确认、拒绝，或在对话里修改计划</li></ul>
+            <div class="callout reveal" data-editable="true">把方向校准放在执行成本之前。</div>
+          </div>
+          <div class="split-visual reveal"><div class="image-frame"><img src="agenthub-assets/2.png" alt="用户审阅任务拆分和前置依赖后决定是否执行"></div><div class="image-caption"><span>两个任务，一条明确依赖：先 PRD，后实现</span><span>03 / 09</span></div></div>
+        </div>
+        <span class="slide-no"><strong>03</strong> / 09</span>
+        <aside class="speaker-script" hidden data-title="计划不是一句‘我来处理’，而是可读、可改、可确认" data-time="1:40–2:30">这里可以看到 Orchestrator 把工作拆成了两个任务：产品经理先输出 PRD，前端工程师再根据 PRD 实现应用。第二项依赖第一项，所以不是简单地把两个任务同时扔出去。计划以卡片展示出来，用户可以执行、拒绝，也可以直接在聊天里提出修改意见。修改意见仍然留在对话里，Orchestrator 据此重新规划。计划确认后系统再启动执行，这让“谁做什么、依赖什么、做到什么程度算完成”都能被看见。把计划放在执行之前，是为了让人能在成本真正花出去之前校准方向。</aside>
+      </section>
+
+      <section class="slide" aria-label="团队接力">
+        <div class="slide-inner split">
+          <div class="copy">
+            <div class="eyebrow reveal" data-editable="true">03 / KEEP WORK IN ONE PLACE</div>
+            <h2 class="reveal" data-editable="true">任务在接力，<br>上下文不掉队</h2>
+            <p class="subhead reveal" data-editable="true">聊天、状态与成果都留在同一个会话，成员能看到工作如何往前走。</p>
+            <ul class="points reveal" data-editable="true"><li>产品经理交付，前端工程师接手</li><li>用户随时查看、补充、纠偏</li><li>不必在工具之间反复搬运资料</li></ul>
+          </div>
+          <div class="split-visual reveal"><div class="image-frame"><img src="agenthub-assets/3.png" alt="产品经理交付 PRD，前端工程师在同一会话继续工作"></div><div class="image-caption"><span>聊天是过程，产物是可以接手的工作成果</span><span>04 / 09</span></div></div>
+        </div>
+        <span class="slide-no"><strong>04</strong> / 09</span>
+        <aside class="speaker-script" hidden data-title="一个空间里，看见任务如何接力" data-time="2:30–3:20">执行开始后，不需要用户在不同工具之间复制粘贴。群聊里能看到 Orchestrator、产品经理和前端工程师各自的消息，任务卡片显示状态，产物也作为独立对象出现在会话里。产品经理完成 PRD，前端工程师可以沿着依赖关系继续实现；用户则能在过程中查看文档、提出修改，或者发现方向不对时及时叫停。对团队来说，这种可见性很实际：不必只等最后一个“已完成”，也不用猜某个 Agent 到底拿到了什么上下文。每个参与者的工作结果和后续接力关系，都留在共同的工作现场。</aside>
+      </section>
+
+      <section class="slide pipeline-slide" aria-label="技术架构">
+        <div class="slide-inner">
+          <div class="eyebrow reveal" data-editable="true">04 / ONE SHARED PIPELINE</div>
+          <h2 class="reveal" data-editable="true">不同 Agent，走同一条协作流水线</h2>
+          <p class="subhead reveal" data-editable="true">把平台差异留在适配层，让一次运行从服务端到界面都有清楚的路径。</p>
+          <div class="pipeline reveal">
+            <div class="pipe-node"><div class="pipe-index">01</div><h3 data-editable="true">用户界面</h3><p data-editable="true">发送需求<br>查看协作进展</p></div>
+            <div class="pipe-node"><div class="pipe-index">02</div><h3 data-editable="true">AgentRunner</h3><p data-editable="true">管理一次运行<br>负责路由与生命周期</p></div>
+            <div class="pipe-node"><div class="pipe-index">03</div><h3 data-editable="true">Adapters</h3><p data-editable="true">接入 Claude Code、Codex<br>或自建 Agent</p></div>
+            <div class="pipe-node"><div class="pipe-index">04</div><h3 data-editable="true">StreamEvent</h3><p data-editable="true">把不同平台输出<br>翻译成统一事件</p></div>
+            <div class="pipe-node"><div class="pipe-index">05</div><h3 data-editable="true">服务与工作区</h3><p data-editable="true">持久化消息、产物<br>通过 SSE 推给前端</p></div>
+          </div>
+          <div class="contract-row reveal"><span class="tag">统一事件协议</span><span class="tag">同一个 AgentRunner</span><span class="tag">Adapter 不写数据库</span></div>
+          <div class="pipeline-note reveal"><span>为什么要这样分层？</span><b>接入新平台时，界面不用跟着理解它的私有协议。</b></div>
+        </div>
+        <span class="slide-no"><strong>05</strong> / 09</span>
+        <aside class="speaker-script" hidden data-title="背后是一条统一的协作流水线" data-time="3:20–4:30">从工程上看，AgentHub 把界面、状态传输、应用服务、Agent 平台适配器和持久化分成几层。用户发出消息之后，由 AgentRunner 管理一次运行的生命周期；底层适配器负责接上 Claude Code、Codex 或自建 Agent，并把平台各自不同的输出翻译成统一的 StreamEvent。服务层处理这些事件、保存消息和产物，再通过一条 SSE 连接推给前端，前端更新对应会话。新增一种 Agent 平台时，不必让 UI 跟着理解它的私有协议。Orchestrator 本身也是走同一个 AgentRunner 的特殊 Agent，它靠额外工具承担调度，而不是另起一条难以维护的执行通道。</aside>
+      </section>
+
+      <section class="slide capabilities-slide" aria-label="接入能力与工作空间">
+        <div class="slide-inner">
+          <div class="eyebrow reveal" data-editable="true">05 / FROM PLUGGABLE AGENTS TO REAL WORK</div>
+          <h2 class="reveal" data-editable="true">接得进来，也要能在自己的工作区里做事</h2>
+          <p class="subhead reveal" data-editable="true">AgentHub 把平台接入、工具调用和文件工作放在同一个会话上下文里。</p>
+          <div class="capability-grid reveal">
+            <article class="capability"><svg class="cap-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 24 10 12M24 24l14-12M24 24l-1 16"/><circle cx="24" cy="24" r="6"/><circle cx="9" cy="11" r="4"/><circle cx="39" cy="11" r="4"/><circle cx="23" cy="41" r="4"/></svg><span class="cap-index">ADAPTERS</span><h3 data-editable="true">多种 Agent 平台</h3><p data-editable="true">Claude Code · Codex<br>OpenAI 兼容自建 Agent · Mock</p><div class="cap-rule"></div><small>适配器统一输出事件</small></article>
+            <article class="capability"><svg class="cap-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="8" width="34" height="25" rx="2"/><path d="M18 41h12M24 33v8M15 15h18M15 21h10"/><circle cx="35" cy="26" r="2"/></svg><span class="cap-index">RUNTIMES</span><h3 data-editable="true">本地运行端</h3><p data-editable="true">可登记 Daemon；支持 Claude Code、OpenCode 等执行后端。</p><div class="cap-rule"></div><small>查看在线状态与任务执行</small></article>
+            <article class="capability"><svg class="cap-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 10v28M24 10v28M36 10v28"/><circle cx="12" cy="19" r="4" fill="#f7f5ef"/><circle cx="24" cy="30" r="4" fill="#f7f5ef"/><circle cx="36" cy="16" r="4" fill="#f7f5ef"/></svg><span class="cap-index">TOOLS</span><h3 data-editable="true">共享工具箱</h3><p data-editable="true">读写文件、运行命令、读取产物、提出问题、拆解任务。</p><div class="cap-rule"></div><small>工具由应用服务集中执行</small></article>
+            <article class="capability"><svg class="cap-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 15h14l4 4h18v20H6z"/><path d="M6 15v-5h14l4 5M14 25h20M14 31h13"/></svg><span class="cap-index">WORKSPACE</span><h3 data-editable="true">每个会话有工作空间</h3><p data-editable="true">上下文、文件和产物围绕具体工作组织，多会话可以并行。</p><div class="cap-rule"></div><small>支持沙箱与本地项目目录</small></article>
+          </div>
+          <div class="capability-foot reveal"><span>把“会调用模型”延伸成</span><strong>能进入任务、使用工具、留下成果。</strong></div>
+        </div>
+        <span class="slide-no"><strong>06</strong> / 09</span>
+        <aside class="speaker-script" hidden data-title="Agent 平台、工具与工作空间接在一起" data-time="4:30–5:25">这条流水线接入了 Claude Code、Codex、自建 Agent 和开发期的 Mock；也可以登记本地 Daemon，把任务交给 Claude Code 或 OpenCode 等运行端。Agent 不只生成文字，还能在工作区里读写文件、运行命令、读取产物、提出问题或拆任务。工具调用由应用服务集中执行，结果再回到会话。不同会话各自保留上下文和工作空间，几项工作可以并行推进，做出来的文档、代码和网页也能留在当前任务里继续交接。</aside>
+      </section>
+
+      <section class="slide" aria-label="产物交付">
+        <div class="slide-inner split">
+          <div class="copy artifact-copy">
+            <div class="eyebrow reveal" data-editable="true">06 / DELIVERABLES, NOT JUST REPLIES</div>
+            <h2 class="reveal" data-editable="true">聊天之外，<br>工作成果也有自己的位置</h2>
+            <p class="subhead reveal" data-editable="true">文档、网页、代码不是埋在长对话里的文本，而是可预览、可编辑、能继续迭代的产物。</p>
+            <div class="artifact-quote reveal" data-editable="true">讨论留在消息里，成果留在工作区。<small>每次修改可以继续形成版本</small></div>
+            <div class="artifact-chips reveal"><span class="tag">文档</span><span class="tag">网页</span><span class="tag">代码</span><span class="tag">版本</span></div>
+          </div>
+          <div class="split-visual artifact-visual reveal"><div class="image-frame"><img src="agenthub-assets/5.png" alt="AgentHub 产物区域中的 PRD 和网页应用预览"></div><div class="image-caption"><span>从对话里打开产物，继续检查和修改</span><span>07 / 09</span></div></div>
+        </div>
+        <span class="slide-no"><strong>07</strong> / 09</span>
+        <aside class="speaker-script" hidden data-title="聊天负责协作，产物负责交付" data-time="5:25–6:10">消息记录讨论过程，产物有自己的类型、版本和生命周期。截图中的交付总结列出 PRD 与记账应用，右侧直接预览网页；文档、网页、图片、代码等可以继续预览或编辑，修改会形成新的版本。后续 Agent 也能通过产物引用继续读取内容，不必从整段聊天里重新找材料。这样交付的不只是一句“已经做好”，而是工作空间中找得到、看得见、能比较、也能继续改的成果。</aside>
+      </section>
+
+      <section class="slide" aria-label="执行边界">
+        <div class="slide-inner">
+          <div class="eyebrow reveal" data-editable="true">07 / AUTOMATION WITH BOUNDARIES</div>
+          <h2 class="guard-title reveal" data-editable="true">自动化要跑得快，关键决定仍要看得见</h2>
+          <p class="subhead reveal" data-editable="true">把确认点、执行范围和完成条件做成流程的一部分。</p>
+          <div class="guard-grid reveal">
+            <article class="guard-card"><div class="guard-symbol">01</div><h3 data-editable="true">计划由人确认</h3><p data-editable="true">拆分后先审阅；执行、拒绝或用自然语言要求修订。</p></article>
+            <article class="guard-card"><div class="guard-symbol">02</div><h3 data-editable="true">结果按约定检查</h3><p data-editable="true">任务带着验收标准；完成状态要对应可检查的结果。</p></article>
+            <article class="guard-card"><div class="guard-symbol">03</div><h3 data-editable="true">工具受工作区约束</h3><p data-editable="true">文件读写与命令在工作区规则内运行，可接入本地环境。</p></article>
+          </div>
+          <div class="guard-bottom reveal"><p data-editable="true">项目按本地形态运行；关键控制点落在计划审批、工作区边界和验收流程里。</p><span class="tag">HUMAN IN THE LOOP</span></div>
+        </div>
+        <span class="slide-no"><strong>08</strong> / 09</span>
+        <aside class="speaker-script" hidden data-title="让自动化有边界，让人保留决定权" data-time="6:10–7:00">Agent 越能做事，越需要清晰的边界。AgentHub 的规划流程保留用户确认点：先看计划，再决定是否执行，也能拒绝或要求修改。任务可以带验收标准，最终结果会按这些标准检查，而不是只看 Agent 自己说“做完了”。对工作区操作，文件读写和命令执行要经过沙箱规则；运行端可以接入本地环境。关键控制点落在具体流程里：哪些任务要跑、谁来跑、在哪个目录操作、结果是否符合约定，都尽量不藏在黑盒里。</aside>
+      </section>
+
+      <section class="slide closing-slide" aria-label="总结">
+        <div class="slide-inner">
+          <div class="eyebrow reveal" data-editable="true">08 / FROM CHAT TO COLLABORATION</div>
+          <div class="closing-head reveal"><h2 data-editable="true">从“转发上下文”，到<span class="accent">共同推进交付</span></h2></div>
+          <div class="flow reveal">
+            <div class="flow-step"><span>01 / ALIGN</span><b data-editable="true">提出目标</b></div><div class="flow-arrow">→</div>
+            <div class="flow-step"><span>02 / CLARIFY</span><b data-editable="true">共同澄清</b></div><div class="flow-arrow">→</div>
+            <div class="flow-step"><span>03 / REVIEW</span><b data-editable="true">计划确认</b></div><div class="flow-arrow">→</div>
+            <div class="flow-step"><span>04 / BUILD</span><b data-editable="true">分工执行</b></div><div class="flow-arrow">→</div>
+            <div class="flow-step"><span>05 / DELIVER</span><b data-editable="true">检查交付</b></div>
+          </div>
+          <div class="closing-bottom reveal">
+            <p class="closing-line" data-editable="true">让人把注意力放在<strong>目标与判断</strong>上，让 Agent 在清楚的边界里接力完成工作。</p>
+            <figure class="closing-visual" role="img" aria-label="对话、Agent 分工和可复用产物在同一工作空间中衔接">
+              <figcaption class="diagram-cap"><span>AGENTHUB / COLLABORATION MAP</span><span>CONTEXT → HANDOFF → OUTPUT</span></figcaption>
+              <svg viewBox="0 0 670 225" aria-hidden="true">
+                <path class="diagram-line" d="M147 93 C190 93 198 93 235 93"/><path class="diagram-line" d="M422 93 C462 93 469 93 510 93"/>
+                <path class="diagram-dash" d="M334 116 C334 157 278 166 245 166M334 116c0 41 56 50 89 50"/>
+                <rect class="diagram-paper" x="14" y="49" width="136" height="91"/>
+                <path class="diagram-line" d="M37 77h87M37 92h60M37 107h73"/>
+                <circle class="diagram-sage" cx="29" cy="62" r="5"/>
+                <text class="diagram-label" x="82" y="160" text-anchor="middle">共同对话</text>
+                <text class="diagram-sub" x="82" y="178" text-anchor="middle">SHARED CONTEXT</text>
+                <circle class="diagram-paper" cx="334" cy="89" r="31"/>
+                <circle class="diagram-blue" cx="334" cy="89" r="11"/>
+                <circle class="diagram-warm" cx="313" cy="68" r="4"/><circle class="diagram-sage" cx="355" cy="68" r="4"/>
+                <circle class="diagram-blue" cx="334" cy="119" r="4"/>
+                <circle class="diagram-paper" cx="245" cy="166" r="19"/><circle class="diagram-paper" cx="423" cy="166" r="19"/>
+                <text class="diagram-sub" x="245" y="170" text-anchor="middle">PM</text><text class="diagram-sub" x="423" y="170" text-anchor="middle">DEV</text>
+                <text class="diagram-label" x="334" y="202" text-anchor="middle">Agent 分工</text>
+                <rect class="diagram-paper" x="516" y="46" width="106" height="98"/>
+                <rect class="diagram-paper" x="530" y="57" width="106" height="98"/>
+                <path class="diagram-paper-line" d="M547 83h69M547 96h69M547 109h51M547 122h61"/>
+                <circle class="diagram-warm" cx="608" cy="66" r="5"/>
+                <text class="diagram-label" x="584" y="177" text-anchor="middle">独立产物</text>
+                <text class="diagram-sub" x="584" y="195" text-anchor="middle">REUSABLE OUTPUT</text>
+              </svg>
+            </figure>
+          </div>
+        </div>
+        <span class="slide-no"><strong>09</strong> / 09</span>
+        <aside class="speaker-script" hidden data-title="让协作从转发上下文变成共同推进交付" data-time="7:00–8:00">总结一下，AgentHub 关注的不是让每个 Agent 单独变得更聪明，而是让多个 Agent 围绕共同目标协作时，需求、计划、执行过程和成果都能接得上。用户提出目标，Orchestrator 帮忙澄清并拆分工作，用户确认后由合适的 Agent 接力执行，最后把结果交付成可查看、可修改的产物。我们希望把人从反复搬运上下文、追问进度和拼装结果里解放出来，让人更多地做目标判断、关键取舍和最终验收。AgentHub 已把会话协作、任务编排、多种 Agent 接入和产物预览连成闭环。接下来要继续打磨的是：让这个闭环在更复杂、更真实的任务里依然清楚、稳定、可控。</aside>
+      </section>
+    </main>
+  </div>
+
+  <nav class="deck-controls" aria-label="幻灯片控制">
+    <button id="prev" aria-label="上一页">←</button>
+    <div class="progress-track" aria-label="播放进度"><div class="progress-value" id="progress"></div></div>
+    <span class="counter" id="counter">01 / 09</span>
+    <button id="notesButton" aria-label="切换演讲者备注">备注 N</button>
+    <button id="editButton" aria-label="切换文字编辑模式">编辑 E</button>
+    <button id="next" aria-label="下一页">→</button>
+  </nav>
+  <aside class="speaker-notes" id="speakerNotes" aria-live="polite" aria-label="演讲者备注">
+    <div class="notes-label">SPEAKER NOTES</div><div class="notes-title" id="notesTitle"></div><div class="notes-time" id="notesTime"></div><div class="notes-script" id="notesScript"></div>
+  </aside>
+  <dialog class="image-lightbox" id="imageLightbox" aria-label="放大演示图片">
+    <button type="button" id="closeLightbox" aria-label="关闭图片放大视图">×</button>
+    <img id="lightboxImage" alt="">
+  </dialog>
+  <div class="edit-hotzone" id="editHotzone" aria-hidden="true"></div>
+  <button class="edit-toggle" id="editToggle" title="编辑模式（E）">✎ 编辑文字</button>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    /* === STAGE SCALE: keep authored 1920×1080 proportions at all viewports === */
+    class SlidePresentation {
+      constructor() {
+        this.slides = [...document.querySelectorAll('.slide')];
+        this.currentSlide = 0;
+        this.stage = document.getElementById('deckStage');
+        this.scaleStage();
+        window.addEventListener('resize', () => this.scaleStage());
+        this.restoreEdits();
+        this.showSlide(0);
+        this.bindControls();
+        this.bindImageZoom();
+      }
+      scaleStage() {
+        const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        const x = (window.innerWidth - 1920 * factor) / 2;
+        const y = (window.innerHeight - 1080 * factor) / 2;
+        this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+      }
+      showSlide(index) {
+        this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+          slide.classList.toggle('active', i === this.currentSlide);
+          slide.classList.toggle('visible', i === this.currentSlide);
+        });
+        const n = this.currentSlide + 1;
+        document.getElementById('counter').textContent = `${String(n).padStart(2,'0')} / ${String(this.slides.length).padStart(2,'0')}`;
+        document.getElementById('progress').style.width = `${n / this.slides.length * 100}%`;
+        this.updateNotes();
+      }
+      updateNotes() {
+        const note = this.slides[this.currentSlide].querySelector('.speaker-script');
+        document.getElementById('notesTitle').textContent = note.dataset.title;
+        document.getElementById('notesTime').textContent = `${note.dataset.time}  ·  ${String(this.currentSlide + 1).padStart(2,'0')} / ${String(this.slides.length).padStart(2,'0')}`;
+        document.getElementById('notesScript').textContent = note.textContent.trim();
+      }
+      bindControls() {
+        document.getElementById('prev').addEventListener('click', () => this.showSlide(this.currentSlide - 1));
+        document.getElementById('next').addEventListener('click', () => this.showSlide(this.currentSlide + 1));
+        document.getElementById('notesButton').addEventListener('click', () => document.getElementById('speakerNotes').classList.toggle('open'));
+        document.addEventListener('keydown', event => {
+          if (event.target.isContentEditable) return;
+          if (['ArrowRight',' ','PageDown'].includes(event.key)) { event.preventDefault(); this.showSlide(this.currentSlide + 1); }
+          if (['ArrowLeft','PageUp'].includes(event.key)) { event.preventDefault(); this.showSlide(this.currentSlide - 1); }
+          if (event.key === 'Home') this.showSlide(0);
+          if (event.key === 'End') this.showSlide(this.slides.length - 1);
+          if (event.key.toLowerCase() === 'n') document.getElementById('speakerNotes').classList.toggle('open');
+        });
+        let startX = 0;
+        this.stage.addEventListener('touchstart', e => { startX = e.changedTouches[0].screenX; }, {passive:true});
+        this.stage.addEventListener('touchend', e => {
+          const delta = e.changedTouches[0].screenX - startX;
+          if (Math.abs(delta) > 60) this.showSlide(this.currentSlide + (delta < 0 ? 1 : -1));
+        }, {passive:true});
+        let wheelLock = false;
+        this.stage.addEventListener('wheel', e => {
+          if (wheelLock || Math.abs(e.deltaY) < 18) return;
+          wheelLock = true;
+          this.showSlide(this.currentSlide + (e.deltaY > 0 ? 1 : -1));
+          setTimeout(() => wheelLock = false, 550);
+        }, {passive:true});
+        document.getElementById('editButton').addEventListener('click', () => this.toggleEdit());
+        document.getElementById('editToggle').addEventListener('click', () => this.toggleEdit());
+        document.getElementById('editHotzone').addEventListener('click', () => this.toggleEdit());
+        document.addEventListener('keydown', e => {
+          if (e.key.toLowerCase() === 'e' && !e.target.isContentEditable) this.toggleEdit();
+          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); this.saveEdits(); }
+        });
+        this.bindEditHotzone();
+      }
+      toggleEdit() {
+        document.body.classList.toggle('edit-mode');
+        const active = document.body.classList.contains('edit-mode');
+        document.getElementById('editToggle').classList.toggle('active', active);
+        document.querySelectorAll('[data-editable="true"]').forEach(el => el.contentEditable = String(active));
+        if (active) this.toast('编辑模式已开启：点击文字修改，按 ⌘/Ctrl + S 保存');
+        else this.saveEdits();
+      }
+      saveEdits() {
+        const edits = [...document.querySelectorAll('[data-editable="true"]')].map(el => el.innerHTML);
+        localStorage.setItem('agenthub-talk-edits-v1', JSON.stringify(edits));
+        this.toast('文字修改已保存在本机浏览器');
+      }
+      restoreEdits() {
+        try {
+          const edits = JSON.parse(localStorage.getItem('agenthub-talk-edits-v1') || '[]');
+          document.querySelectorAll('[data-editable="true"]').forEach((el, i) => { if (edits[i]) el.innerHTML = edits[i]; });
+        } catch { /* Ignore malformed local edits and keep the authored deck. */ }
+      }
+      toast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(this.toastTimeout);
+        this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 2200);
+      }
+      bindEditHotzone() {
+        const hotzone = document.getElementById('editHotzone');
+        const button = document.getElementById('editToggle');
+        let hideTimeout;
+        const graceHide = () => { hideTimeout = setTimeout(() => { if (!document.body.classList.contains('edit-mode')) button.classList.remove('show'); }, 400); };
+        hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); button.classList.add('show'); });
+        hotzone.addEventListener('mouseleave', graceHide);
+        button.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+        button.addEventListener('mouseleave', graceHide);
+      }
+      bindImageZoom() {
+        const dialog = document.getElementById('imageLightbox');
+        const enlargedImage = document.getElementById('lightboxImage');
+        document.querySelectorAll('.image-frame img').forEach(image => {
+          image.addEventListener('click', () => {
+            enlargedImage.src = image.currentSrc || image.src;
+            enlargedImage.alt = image.alt;
+            dialog.showModal();
+          });
+        });
+        document.getElementById('closeLightbox').addEventListener('click', () => dialog.close());
+        enlargedImage.addEventListener('click', () => dialog.close());
+        dialog.addEventListener('click', event => {
+          if (event.target === dialog) dialog.close();
+        });
+        dialog.addEventListener('close', () => { enlargedImage.removeAttribute('src'); });
+      }
+    }
+    const deck = new SlidePresentation();
+  </script>
+</body>
+</html>

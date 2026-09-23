@@ -1,11 +1,27 @@
 [
   {
+    "id": "agenthub",
+    "title": "AgentHub｜让多个 Agent 像一个团队一样协作",
+    "description": "8 分钟项目分享：AgentHub 把多个 Agent 放进同一工作空间——Agent 像联系人，对话像工作空间，Orchestrator 像项目经理，从单个助手到一支能交付结果的队伍。",
+    "path": "/agenthub/",
+    "date": "2026-09-23",
+    "tags": [
+      "AI",
+      "多智能体",
+      "AgentHub"
+    ]
+  },
+  {
     "id": "multi-agent",
     "title": "多智能体系统：有效性边界与工程实践",
     "description": "60 分钟技术大会分享：什么时候该让 AI 组队、怎么组才不翻车——文献证据与 AgentHub 实战印证，附四步判断法与动手顺序。",
     "path": "/multi-agent/",
     "date": "2026-09-19",
-    "tags": ["AI", "多智能体", "技术分享"]
+    "tags": [
+      "AI",
+      "多智能体",
+      "技术分享"
+    ]
   },
   {
     "id": "proj-one",
@@ -13,7 +29,11 @@
     "description": "从需求导入、AI 澄清、任务分解到分派与交付的全流程智能化管理方案汇报。",
     "path": "/proj-one/",
     "date": "2026-07-22",
-    "tags": ["AI", "项目管理", "流程自动化"]
+    "tags": [
+      "AI",
+      "项目管理",
+      "流程自动化"
+    ]
   },
   {
     "id": "multi-agent-deck",
@@ -21,6 +41,10 @@
     "description": "一套杂志拼贴风格的演示文稿，讲解多智能体协作原理及其在项目管理中的实践验证。",
     "path": "/multi-agent-deck/",
     "date": "2026-07-19",
-    "tags": ["AI", "多智能体", "幻灯片"]
+    "tags": [
+      "AI",
+      "多智能体",
+      "幻灯片"
+    ]
   }
 ]
